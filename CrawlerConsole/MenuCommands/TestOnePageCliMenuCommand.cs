@@ -14,9 +14,9 @@ namespace CrawlerConsole.MenuCommands;
 public sealed class TestOnePageCliMenuCommand : CliMenuCommand
 {
     //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
-    private readonly ICrawlerRepository _crawlerRepository;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger _logger;
+    //private readonly ICrawlerRepository _crawlerRepository;
+    //private readonly IHttpClientFactory _httpClientFactory;
+    //private readonly ILogger _logger;
     private readonly IParametersManager _parametersManager;
     private readonly string _taskName;
 
@@ -25,11 +25,11 @@ public sealed class TestOnePageCliMenuCommand : CliMenuCommand
         ICrawlerRepository crawlerRepository, IParametersManager parametersManager, string taskName) : base(
         "Test One Page", EMenuAction.Reload)
     {
-        _logger = logger;
-        _httpClientFactory = httpClientFactory;
+        //_logger = logger;
+        //_httpClientFactory = httpClientFactory;
         _parametersManager = parametersManager;
         _taskName = taskName;
-        _crawlerRepository = crawlerRepository;
+        //_crawlerRepository = crawlerRepository;
     }
 
     protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)

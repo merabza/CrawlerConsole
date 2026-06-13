@@ -12,11 +12,11 @@ namespace CrawlerConsole.MenuCommands;
 
 public sealed class TaskCliMenuCommand : CliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    //private readonly ICrawlerRepository _crawlerRepository;
 
     //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger _logger;
+    //private readonly IHttpClientFactory _httpClientFactory;
+    //private readonly ILogger _logger;
     private readonly IParametersManager _parametersManager;
     private readonly string _taskName;
 
@@ -25,11 +25,11 @@ public sealed class TaskCliMenuCommand : CliMenuCommand
         ICrawlerRepository crawlerRepository, IParametersManager parametersManager, string taskName) : base(
         "Run this task", EMenuAction.Reload)
     {
-        _logger = logger;
-        _httpClientFactory = httpClientFactory;
+        //_logger = logger;
+        //_httpClientFactory = httpClientFactory;
         _parametersManager = parametersManager;
         _taskName = taskName;
-        _crawlerRepository = crawlerRepository;
+        //_crawlerRepository = crawlerRepository;
     }
 
     protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
