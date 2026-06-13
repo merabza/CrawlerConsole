@@ -1,0 +1,967 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web;
+using System.Xml;
+using System.Xml.Linq;
+using AppCliTools.LibDataInput;
+using CrawlerDb.Configurations;
+using CrawlerDb.Models;
+using DoCrawler.Domain;
+using DoCrawler.Models;
+using DoCrawler.States;
+using LibCrawlerRepositories;
+using Microsoft.Extensions.Logging;
+using RobotsTxt;
+using RobotsTxt.Entities;
+using SystemTools.SystemToolsShared;
+
+namespace DoCrawler;
+
+public sealed class BatchPartRunner
+{
+    public const string CrawlerClient = nameof(CrawlerClient);
+
+    private readonly BatchPart _batchPart;
+    private readonly ConsoleFormatter _consoleFormatter = new();
+    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger _logger;
+    private readonly bool _noPrompt;
+    private readonly CrawlerParameters _par;
+
+    private readonly ParseOnePageParameters _parseOnePageParameters;
+
+    private ProcData _procData = new();
+    //private readonly UrlGraphDeDuplicator _urlGraphDeDuplicator;
+
+    // ReSharper disable once ConvertToPrimaryConstructor
+    public BatchPartRunner(ILogger logger, IHttpClientFactory httpClientFactory, ICrawlerRepository crawlerRepository,
+        CrawlerParameters par, ParseOnePageParameters parseOnePageParameters, BatchPart batchPart, bool noPrompt = false)
+    {
+        _logger = logger;
+        _httpClientFactory = httpClientFactory;
+        _par = par;
+        _parseOnePageParameters = parseOnePageParameters;
+        _batchPart = batchPart;
+        _crawlerRepository = crawlerRepository;
+        _noPrompt = noPrompt;
+        //_urlGraphDeDuplicator = new UrlGraphDeDuplicator(repository);
+    }
+
+    public void InitBachPart(List<string> startPoints, Batch batch)
+    {
+        //_urlGraphNodes.Clear();
+        List<string> hostsByBatches = _crawlerRepository.GetHostStartUrlNamesByBatch(batch);
+        foreach (string hostName in hostsByBatches)
+        {
+            //შევამოწმოთ და თუ არ არსებობს შევქმნათ შემდეგი 2 ჩანაწერი მოსაქაჩი გვერდების სიაში:
+            //1. {_hostName}
+            //2. {_hostName}robots.txt
+            TrySaveUrl(_crawlerRepository, $"{hostName}/", 0, _batchPart.BpId);
+            TrySaveUrl(_crawlerRepository, $"{hostName}/robots.txt", 0, _batchPart.BpId);
+        }
+
+        foreach (Uri? uri in startPoints.Select(UriFactory.GetUri).Where(x => x is not null))
+        {
+            TrySaveUrl(_crawlerRepository, uri!.AbsoluteUri, 0, _batchPart.BpId);
+        }
+
+        //_urlGraphDeDuplicator.CopyToRepository();
+
+        SaveChangesAndReduceCache(_crawlerRepository);
+
+        //რაც არსებობს ამ პარტიის ფარგლებში ყველა Url დაკოპირდეს ახლად შექმნის ნაწილში.
+        //ეს საშუალებას მოგვცემს დავადგინოთ საიტზე რომელიმე გვერდი მოკვდა თუ არა.
+    }
+
+    public async Task RunBatchPart(CancellationToken token = default)
+    {
+        //ჩაიტვირთოს ულუფა წინასწარ განსაზღვრული მაქსიმალური რაოდენობის მოუქაჩავი მისამართების
+        //ეს მისამართები ჩადგეს რიგში და სათითაოდ თითოეულისთვის
+        //აქედან უნდა დავიწყოთ პორციების ჩატვირთვის ციკლი
+        while (true)
+        {
+            _procData = new ProcData();
+
+            List<UrlModel> loadedUrls = LoadUrls(_crawlerRepository, _batchPart);
+
+            if (loadedUrls.Count == 0)
+            {
+                break;
+            }
+
+            _consoleFormatter.UseCurrentLine();
+
+            int analyzedCount = 0;
+            foreach (UrlModel urlModel in loadedUrls)
+            {
+                await ProcessPage(_crawlerRepository, urlModel, _batchPart, token);
+                analyzedCount++;
+                if (!_procData.NeedsToReduceCache() && !_crawlerRepository.NeedSaveChanges())
+                {
+                    continue;
+                }
+
+                SaveChangesAndReduceCache(_crawlerRepository);
+                _procData = new ProcData();
+
+                StShared.ConsoleWriteInformationLine(_logger, true,
+                    $"Analyzed {analyzedCount} from {loadedUrls.Count} loaded Urls");
+
+                _consoleFormatter.UseCurrentLine();
+            }
+
+            SaveChangesAndReduceCache(_crawlerRepository);
+        }
+    }
+
+    private List<UrlModel> LoadUrls(ICrawlerRepository crawlerRepository, BatchPart batchPart)
+    {
+        StShared.ConsoleWriteInformationLine(_logger, true, "Loading next part Urls...");
+
+        CountStatistics(crawlerRepository);
+
+        var getPagesState = new GetPagesState(_logger, crawlerRepository, _par, batchPart);
+        List<UrlModel> urlsLoaded = getPagesState.GetPages();
+        StShared.ConsoleWriteInformationLine(_logger, true,
+            $"Loading Urls Finished. Urls count in queue is {urlsLoaded.Count}");
+        return urlsLoaded;
+    }
+
+    private void CountStatistics(ICrawlerRepository crawlerRepository)
+    {
+        long urlsCount = crawlerRepository.GetUrlsCount(_batchPart.BpId);
+
+        long loadedUrlsCount = crawlerRepository.GetLoadedUrlsCount(_batchPart.BpId);
+
+        long termsCount = crawlerRepository.GetTermsCount();
+
+        StShared.ConsoleWriteInformationLine(_logger, true,
+            $"[{DateTime.Now}] Urls {loadedUrlsCount}-{urlsCount} terms {termsCount}");
+    }
+
+    private async Task<GetOnePageContentResult> GetOnePageContent(Uri uri, EContentType contentType,
+        CancellationToken token = default)
+    {
+        try
+        {
+            // ReSharper disable once using
+            HttpClient client = _httpClientFactory.CreateClient(CrawlerClient);
+            // ReSharper disable once using
+            using HttpResponseMessage response = await client.GetAsync(uri, token);
+
+            //response.Headers.
+
+            if (response.IsSuccessStatusCode)
+            {
+                string? text;
+                if (contentType == EContentType.SiteMapGzFile)
+                {
+                    // ReSharper disable once using
+                    // ReSharper disable once DisposableConstructor
+                    await using Stream stream = await response.Content.ReadAsStreamAsync(token);
+                    // ReSharper disable once using
+                    // ReSharper disable once DisposableConstructor
+                    await using var gzStream = new GZipStream(stream, CompressionMode.Decompress);
+                    // ReSharper disable once using
+                    // ReSharper disable once DisposableConstructor
+                    using var reader = new StreamReader(gzStream);
+                    text = await reader.ReadToEndAsync(token);
+                }
+                else
+                {
+                    text = await response.Content.ReadAsStringAsync(token);
+                }
+
+                return new GetOnePageContentResult
+                {
+                    StatusCode = response.StatusCode, LastModified = GetPageLastModified(response), Content = text
+                };
+            }
+
+            if (response.StatusCode == HttpStatusCode.Found)
+            {
+                return new GetOnePageContentResult
+                {
+                    StatusCode = response.StatusCode,
+                    LastModified = GetPageLastModified(response),
+                    Location = GetPageLocation(response)
+                };
+            }
+
+            return new GetOnePageContentResult { StatusCode = response.StatusCode };
+        }
+        catch
+        {
+            StShared.WriteErrorLine($"Error when downloading {uri}", true, _logger, false);
+        }
+
+        return new GetOnePageContentResult { StatusCode = HttpStatusCode.BadRequest };
+    }
+
+    //private async Task<GetOnePageContentResult> GetOnePageContent(Uri uri, CancellationToken token = default)
+    //{
+    //    try
+    //    {
+    //        // ReSharper disable once using
+    //        var client = _httpClientFactory.CreateClient(CrawlerClient);
+    //        // ReSharper disable once using
+    //        using var response = await client.GetAsync(uri, token);
+
+    //        //response.Headers.
+
+    //        if (response.IsSuccessStatusCode)
+    //            return new GetOnePageContentResult
+    //            {
+    //                StatusCode = response.StatusCode,
+    //                LastModified = GetPageLastModified(response),
+    //                Content = await response.Content.ReadAsStringAsync(token)
+    //            };
+    //        if (response.StatusCode == HttpStatusCode.Found)
+    //            return new GetOnePageContentResult
+    //            {
+    //                StatusCode = response.StatusCode,
+    //                LastModified = GetPageLastModified(response),
+    //                Location = GetPageLocation(response)
+    //            };
+
+    //        return new GetOnePageContentResult { StatusCode = response.StatusCode };
+    //    }
+    //    catch
+    //    {
+    //        StShared.WriteErrorLine($"Error when downloading {uri}", true, _logger, false);
+    //    }
+
+    //    return new GetOnePageContentResult { StatusCode = HttpStatusCode.BadRequest };
+    //}
+
+    //private DateTime? GetPageLastModified(Uri uri)
+    //{
+    //    // ReSharper disable once using
+    //    var client = _httpClientFactory.CreateClient(CrawlerClient);
+    //    // ReSharper disable once using
+    //    // ReSharper disable once DisposableConstructor
+    //    using var request = new HttpRequestMessage(HttpMethod.Head, uri);
+    //    // ReSharper disable once using
+    //    using var response = client.Send(request);
+
+    //    return GetPageLastModified(response);
+    //}
+
+    private static string? GetPageLocation(HttpResponseMessage response)
+    {
+        return response.Headers.TryGetValues("location", out IEnumerable<string>? values)
+            ? values.FirstOrDefault()
+            : null;
+    }
+
+    private static DateTime? GetPageLastModified(HttpResponseMessage response)
+    {
+        if (!response.Headers.TryGetValues("Last-Modified", out IEnumerable<string>? values))
+        {
+            return null;
+        }
+
+        string? lastModifiedStr = values.FirstOrDefault();
+        if (DateTime.TryParse(lastModifiedStr, CultureInfo.InvariantCulture, DateTimeStyles.None,
+                out DateTime lastModified))
+        {
+            return lastModified;
+        }
+
+        return null;
+    }
+
+    //private async Task<GetOnePageContentResult> GetSiteMapGzFileContent(Uri uri, CancellationToken token = default)
+    //{
+    //    try
+    //    {
+    //        // ReSharper disable once using
+    //        var client = _httpClientFactory.CreateClient(CrawlerClient);
+    //        // ReSharper disable once using
+    //        using var response = await client.GetAsync(uri, token);
+    //        if (response.IsSuccessStatusCode)
+    //        {
+    //            // ReSharper disable once using
+    //            // ReSharper disable once DisposableConstructor
+    //            await using var stream = await response.Content.ReadAsStreamAsync(token);
+    //            // ReSharper disable once using
+    //            // ReSharper disable once DisposableConstructor
+    //            await using var gzStream = new GZipStream(stream, CompressionMode.Decompress);
+    //            // ReSharper disable once using
+    //            // ReSharper disable once DisposableConstructor
+    //            using var reader = new StreamReader(gzStream);
+    //            var text = await reader.ReadToEndAsync(token);
+    //            return new GetOnePageContentResult
+    //            {
+    //                StatusCode = response.StatusCode, LastModified = GetPageLastModified(response), Content = text
+    //            };
+    //        }
+
+    //        if (response.StatusCode == HttpStatusCode.Found)
+    //            return new GetOnePageContentResult
+    //            {
+    //                StatusCode = response.StatusCode,
+    //                LastModified = GetPageLastModified(response),
+    //                Location = GetPageLocation(response)
+    //            };
+
+    //        return new GetOnePageContentResult { StatusCode = response.StatusCode };
+    //    }
+    //    catch
+    //    {
+    //        StShared.WriteErrorLine($"Error when downloading {uri}", true, _logger, false);
+    //        //StShared.WriteException(e, true);
+    //    }
+
+    //    return new GetOnePageContentResult { StatusCode = HttpStatusCode.BadRequest };
+    //}
+
+    private void AnalyzeAsRobotsText(ICrawlerRepository crawlerRepository, string content, int fromUrlPageId,
+        int batchPartId, int schemeId, int hostId)
+    {
+        StShared.ConsoleWriteInformationLine(_logger, true, "Analyze as robots.txt");
+
+        crawlerRepository.SaveRobotsTxtToBase(batchPartId, schemeId, hostId, content);
+
+        Robots? robots = RobotsFactory.AnaliseContentAndCreateRobots(content);
+
+        if (robots is null)
+        {
+            return;
+        }
+
+        _procData.SetRobotsCache(hostId, robots);
+
+        foreach (Sitemap robotsSitemap in robots.Sitemaps)
+        {
+            TrySaveUrl(crawlerRepository, robotsSitemap.Url.ToString(), fromUrlPageId, batchPartId, true);
+        }
+
+        var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+
+        urlGraphDeDuplicator.CopyToRepository();
+
+        SaveChangesAndReduceCache(crawlerRepository);
+    }
+
+    private void AnalyzeAsSiteMap(ICrawlerRepository crawlerRepository, string content, int urlId, int bpId)
+    {
+        if (TryParseXml(content, out XElement? element) && element is not null)
+        {
+            AnalyzeAsSiteMapXml(crawlerRepository, element, urlId, bpId);
+        }
+        else
+        {
+            AnalyzeAsSiteMapText(crawlerRepository, content, urlId, bpId);
+        }
+    }
+
+    private void AnalyzeAsHtml(ICrawlerRepository crawlerRepository, string content, UrlModel url, BatchPart batchPart)
+    {
+        var uri = new Uri(url.UrlName);
+
+        _consoleFormatter.WriteInSameLine("Parsing", uri.ToString());
+        var parseOnePageState = new ParseOnePageState(_logger, _parseOnePageParameters, content, url);
+        parseOnePageState.Execute();
+
+        _consoleFormatter.WriteInSameLine("Save URLs", uri.ToString());
+        foreach (string childUri in parseOnePageState.ListOfUris)
+        {
+            TrySaveUrl(crawlerRepository, childUri, url.UrlId, batchPart.BpId);
+        }
+
+        int position = 0;
+
+        _consoleFormatter.WriteInSameLine("Save Terms", uri.ToString());
+        foreach (UriTerm uriTerm in parseOnePageState.UriTerms)
+        {
+            TrySaveTerm(crawlerRepository, uriTerm.TermType, uriTerm.Context, url.UrlId, batchPart.BpId, position++);
+        }
+
+        _consoleFormatter.WriteInSameLine("Clear Tail", uri.ToString());
+        ClearTermsTail(crawlerRepository, batchPart.BpId, url.UrlId, position);
+
+        var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+
+        urlGraphDeDuplicator.CopyToRepository();
+    }
+
+    private static bool TryParseXml(string xml, out XElement? element)
+    {
+        element = null;
+        try
+        {
+            element = XElement.Parse(xml);
+            return true;
+        }
+        catch (XmlException e)
+        {
+            StShared.WriteWarningLine(e.Message, true);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            StShared.WriteException(ex, true);
+            return false;
+        }
+    }
+
+    private void AnalyzeAsSiteMapXml(ICrawlerRepository crawlerRepository, XElement element, int fromUrlPageId,
+        int batchPartId)
+    {
+        //არსებობს Sitemap და Sitemap Index
+        //ფორმატების აღწერა ვნახე მისამართზე
+        //https://www.conductor.com/academy/xml-sitemap/
+
+        //Sitemap Index-ის ნიმუშია
+        /*
+          <?xml version="1.0" encoding="UTF-8"?>
+           <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <sitemap>
+                <loc>http://www.example.com/sitemap1.xml.gz</loc>
+                <lastmod>2004-10-01T18:23:17+00:00</lastmod>
+            </sitemap>
+            <sitemap>
+                <loc>http://www.example.com/sitemap2.xml.gz</loc>
+                <lastmod>2005-01-01</lastmod>
+            </sitemap>
+           </sitemapindex>
+        */
+
+        //Sitemap-ის ნიმუშია
+        /*
+          <?xml version="1.0" encoding="UTF-8"?>
+           <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+                <loc>https://www.contentkingapp.com/</loc>
+                <lastmod>2017-06-14T19:55:25+02:00</lastmod>
+            </url>
+            <url>
+                <loc>https://www.contentkingapp.com/blog/</loc>
+                <lastmod>2016-06-24T10:23:20+02:00</lastmod>
+            </url>
+           </urlset>
+         */
+
+        //პირველ რიგში უნდა დავადგინოთ Sitemap-ს ვაანალიზებთ თუ Sitemap Index-ს
+
+        switch (element.Name.LocalName)
+        {
+            //თუ პირველი ტეგი არის sitemapindex, მაშინ საქმე გვაქვს Sitemap Index-თან
+            case "sitemapindex":
+                AnalyzeSiteMapXml(crawlerRepository, element, fromUrlPageId, batchPartId, true);
+                break;
+            //თუ პირველი ტეგი არის urlset, მაშინ საქმე გვაქვს Sitemap-თან
+            case "urlset":
+                AnalyzeSiteMapXml(crawlerRepository, element, fromUrlPageId, batchPartId, false);
+                break;
+            default:
+                StShared.WriteErrorLine("Unknown XML Format", true, _logger, false);
+                break;
+        }
+    }
+
+    private void AnalyzeSiteMapXml(ICrawlerRepository crawlerRepository, XContainer sitemapElement, int fromUrlPageId,
+        int batchPartId, bool isIndex)
+    {
+        StShared.ConsoleWriteInformationLine(_logger, true, $"Analyze as Sitemap {(isIndex ? "Index " : " ")}XML");
+        string sitemapNodeLocName = isIndex ? "sitemap" : "url";
+        foreach (XNode smiNode in sitemapElement.Nodes())
+        {
+            var sitemapNode = smiNode as XElement;
+            if (sitemapNode?.Name.LocalName != sitemapNodeLocName)
+            {
+                continue;
+            }
+
+            foreach (XNode smNode in sitemapNode.Nodes())
+            {
+                var locNode = smNode as XElement;
+                if (locNode?.Name.LocalName == "loc")
+                {
+                    TrySaveUrl(crawlerRepository, locNode.Value, fromUrlPageId, batchPartId, isIndex);
+                }
+            }
+        }
+
+        var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+
+        urlGraphDeDuplicator.CopyToRepository();
+    }
+
+    private void AnalyzeAsSiteMapText(ICrawlerRepository crawlerRepository, string content, int fromUrlPageId,
+        int batchPartId)
+    {
+        StShared.ConsoleWriteInformationLine(_logger, true, "Analyze as Sitemap Text");
+
+        string[] lines = content.Split('\n');
+
+        foreach (string line in lines)
+        {
+            TrySaveUrl(crawlerRepository, line, fromUrlPageId, batchPartId);
+        }
+
+        var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+
+        urlGraphDeDuplicator.CopyToRepository();
+    }
+
+    private void TrySaveTerm(ICrawlerRepository crawlerRepository, ETermType termType, string? termContext,
+        int termUrlId, int termBatchPartId, int position)
+    {
+        try
+        {
+            TermType termTypeInBase = TrySaveTermType(crawlerRepository, termType);
+
+            string? termText = termType switch
+            {
+                ETermType.ParagraphStart => "<p>",
+                ETermType.ParagraphFinish => "</p>",
+                ETermType.StatementStart => "<s>",
+                ETermType.StatementFinish => "</s>",
+                ETermType.ForeignWord => termContext,
+                ETermType.Word => termContext,
+                ETermType.Punctuation => termContext,
+                _ => throw new ArgumentOutOfRangeException(nameof(termType), termType, null)
+            };
+
+            if (string.IsNullOrWhiteSpace(termText))
+            {
+                StShared.WriteErrorLine("termText is empty", true);
+                return;
+            }
+
+            Term? term = _procData.GetTermByName(termText);
+            if (term == null && termTypeInBase.TtId != 0)
+            {
+                term = crawlerRepository.GetTerm(termText);
+            }
+
+            if (term == null)
+            {
+                term = crawlerRepository.AddTerm(termText, termTypeInBase);
+                crawlerRepository.AddTermByUrl(termBatchPartId, termUrlId, term, position);
+                _procData.AddTerm(term);
+            }
+            else
+            {
+                TermByUrl? termByUrl = crawlerRepository.GeTermByUrlEntry(termBatchPartId, termUrlId, position);
+
+                if (termByUrl == null)
+                {
+                    crawlerRepository.AddTermByUrl(termBatchPartId, termUrlId, term, position);
+                }
+                else
+                {
+                    crawlerRepository.EditTermByUrl(termByUrl, term);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error occurred executing {MethodName} for {TermContext}", nameof(TrySaveTerm),
+                termContext);
+            throw new Exception($"Error occurred executing {nameof(TrySaveTerm)} for {termContext}", e);
+        }
+    }
+
+    private void ClearTermsTail(ICrawlerRepository crawlerRepository, int batchPartId, int urlId, int position)
+    {
+        crawlerRepository.ClearTermsTail(batchPartId, urlId, position);
+    }
+
+    private TermType TrySaveTermType(ICrawlerRepository crawlerRepository, ETermType termType)
+    {
+        string termTypeName = termType.ToString();
+        TermType? termTypeInBase = _procData.GetTermTypeByKey(termTypeName);
+
+        if (termTypeInBase != null)
+        {
+            return termTypeInBase;
+        }
+
+        termTypeInBase = crawlerRepository.CheckAddTermType(termTypeName);
+
+        _procData.AddTermType(termTypeInBase);
+
+        return termTypeInBase;
+    }
+
+    public UrlModel? TrySaveUrl(ICrawlerRepository crawlerRepository, string urName, int fromUrlPageId, int batchPartId,
+        bool isSiteMap = false, bool isRobotsTxt = false)
+    {
+        try
+        {
+            UrlData? urlData = GetUrlData(crawlerRepository, urName);
+            if (urlData == null)
+            {
+                return null;
+            }
+
+            if (urlData.Url is null)
+            {
+                //დადგინდეს Url შეესაბამება თუ არა robots.txt-ში მოცემულ წესებს
+                bool isAllowed = isRobotsTxt || IsUrlValidByRobotsRules(crawlerRepository, urlData);
+
+                //ახალი url-ის დამატება
+                urlData.Url = crawlerRepository.AddUrl(urlData.CheckedUrName, urlData.UrlHashCode, urlData.Host,
+                    urlData.Extension, urlData.Scheme, isSiteMap, isAllowed);
+
+                var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+
+                urlGraphDeDuplicator.AddUrlGraph(fromUrlPageId, urlData.Url, batchPartId);
+
+                if (isAllowed && urlData.Url != null)
+                {
+                    _procData.AddUrl(urlData.Url);
+                }
+            }
+            else
+            {
+                //url-ი ბაზაში უკვე ყოფილა. გრაფში არის თუ არა, უნდა შემოწმდეს დამატებით
+                if (urlData.Url.UrlId == 0 || fromUrlPageId == 0 || batchPartId == 0)
+                {
+                    return urlData.Url;
+                }
+
+                UrlGraphNode? urlGraphNode =
+                    crawlerRepository.GetUrlGraphEntry(fromUrlPageId, urlData.Url.UrlId, batchPartId);
+                if (urlGraphNode is not null)
+                {
+                    return urlData.Url;
+                }
+
+                var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+                urlGraphDeDuplicator.AddUrlGraph(fromUrlPageId, urlData.Url, batchPartId);
+            }
+
+            return urlData.Url;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error occurred executing {MethodName} for {Url}", nameof(TrySaveUrl), urName);
+            throw new Exception($"Error occurred executing {nameof(TrySaveUrl)} for {urName}", e);
+        }
+    }
+
+    private bool IsUrlValidByRobotsRules(ICrawlerRepository crawlerRepository, UrlData urlData)
+    {
+        int hostId = urlData.Host.HostId;
+        int schemeId = urlData.Scheme.SchId;
+
+        if (!_batchPart.BatchNavigation.HostsByBatches.Any(x => x.SchemeId == schemeId && x.HostId == hostId))
+        {
+            return true;
+        }
+
+        Robots? robots = _procData.GetRobots(hostId);
+
+        if (robots is not null)
+        {
+            return robots.IsPathAllowed("*", urlData.AbsolutePath);
+        }
+
+        //დადგინდეს hostId-ისთვის ელემენტი არსებობს თუ არა რობოტების დიქშინარეში
+        bool isHostCachedInRobotsDictionary = _procData.IsHostCachedInRobotsDictionary(hostId);
+        //თუ დაქეშილი არ არის
+        if (isHostCachedInRobotsDictionary)
+        {
+            return true;
+        }
+
+        //შევეცადოთ ჩავტვირთოთ ბაზიდან, თუ რა თქმა უნდა გადანახული არის
+        robots = RobotsFromBase(crawlerRepository, schemeId, hostId);
+
+        //if (robots is null)
+        //    SaveUrlAndProcessOnePage(crawlerRepository,
+        //        $"{urlData.Scheme.SchName}://{urlData.Host.HostName}/robots.txt", false, true);
+
+        //robots = RobotsFromBase(crawlerRepository, schemeId, hostId);
+
+        return robots is null || robots.IsPathAllowed("*", urlData.AbsolutePath);
+    }
+
+    private async Task SaveUrlAndProcessOnePage(ICrawlerRepository crawlerRepository, string strUrl,
+        bool isSiteMap = false, bool isRobotsTxt = false, CancellationToken token = default)
+    {
+        UrlModel? urlModel = TrySaveUrl(crawlerRepository, strUrl, 0, _batchPart.BpId, isSiteMap, isRobotsTxt);
+        if (urlModel is null)
+        {
+            return;
+        }
+
+        SaveChangesAndReduceCache(crawlerRepository);
+        await ProcessPage(crawlerRepository, urlModel, _batchPart, token);
+        SaveChangesAndReduceCache(crawlerRepository);
+    }
+
+    private Robots? RobotsFromBase(ICrawlerRepository crawlerRepository, int schemeId, int hostId)
+    {
+        string? robotsTxt = crawlerRepository.LoadRobotsFromBase(_batchPart.BpId, schemeId, hostId);
+        return robotsTxt is not null ? RobotsFactory.AnaliseContentAndCreateRobots(robotsTxt) : null;
+    }
+
+    private UrlData? GetUrlData(ICrawlerRepository crawlerRepository, string urName)
+    {
+        Uri? myUri = UriFactory.GetUri(urName);
+        if (myUri == null)
+        {
+            return null;
+        }
+
+        string? host = myUri.Host.Truncate(HostModelConfiguration.HostNameLength);
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            host = "InvalidHostName";
+        }
+
+        string absolutePath = myUri.AbsolutePath;
+
+        string? extension = Path.GetExtension(absolutePath).Truncate(ExtensionModelConfiguration.ExtensionNameLength);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            extension = "NoExtension";
+        }
+
+        string? scheme = myUri.Scheme.Truncate(SchemeModelConfiguration.SchemeNameLength);
+        if (string.IsNullOrWhiteSpace(scheme))
+        {
+            scheme = "InvalidSchemeName";
+        }
+
+        HostModel hostModel = TrySaveHostName(crawlerRepository, host);
+        ExtensionModel extensionModel = TrySaveExtension(crawlerRepository, extension);
+        SchemeModel schemeModel = TrySaveScheme(crawlerRepository, scheme);
+
+        string? checkedUrName = HttpUtility.UrlDecode(myUri.AbsoluteUri).Truncate(UrlModelConfiguration.TermTextLength);
+        if (string.IsNullOrWhiteSpace(checkedUrName))
+        {
+            checkedUrName = "InvalidUri";
+        }
+
+        int urlHashCode = checkedUrName.GetDeterministicHashCode();
+
+        UrlModel? url = _procData.GetUrlByHashCode(urlHashCode);
+
+        if ((url is null || url.UrlName != checkedUrName) && hostModel.HostId != 0 && extensionModel.ExtId != 0 &&
+            schemeModel.SchId != 0)
+        {
+            url = crawlerRepository.GetUrl(hostModel.HostId, extensionModel.ExtId, schemeModel.SchId, urlHashCode,
+                checkedUrName);
+        }
+
+        var urlData = new UrlData(hostModel, extensionModel, schemeModel, checkedUrName, absolutePath, urlHashCode,
+            url);
+
+        return urlData;
+    }
+
+    private HostModel TrySaveHostName(ICrawlerRepository crawlerRepository, string hostName)
+    {
+        HostModel? host = _procData.GetHostByName(hostName);
+
+        if (host != null)
+        {
+            return host;
+        }
+
+        host = crawlerRepository.CheckAddHostName(hostName);
+
+        _procData.AddHost(host);
+
+        return host;
+    }
+
+    private ExtensionModel TrySaveExtension(ICrawlerRepository crawlerRepository, string extensionName)
+    {
+        ExtensionModel? extension = _procData.GetExtensionByName(extensionName);
+
+        if (extension != null)
+        {
+            return extension;
+        }
+
+        extension = crawlerRepository.CheckAddExtensionName(extensionName);
+
+        _procData.AddExtension(extension);
+
+        return extension;
+    }
+
+    private SchemeModel TrySaveScheme(ICrawlerRepository crawlerRepository, string schemeName)
+    {
+        SchemeModel? scheme = _procData.GetSchemeByName(schemeName);
+
+        if (scheme != null)
+        {
+            return scheme;
+        }
+
+        scheme = crawlerRepository.CheckAddSchemeName(schemeName);
+
+        _procData.AddScheme(scheme);
+
+        return scheme;
+    }
+
+    private void SaveChangesAndReduceCache(ICrawlerRepository crawlerRepository)
+    {
+        StShared.ConsoleWriteInformationLine(_logger, true, $"[{DateTime.Now}] Save Changes");
+
+        crawlerRepository.SaveChangesWithTransaction();
+
+        StShared.ConsoleWriteInformationLine(_logger, true, $"[{DateTime.Now}] CountStatistics");
+
+        CountStatistics(crawlerRepository);
+    }
+
+    private async Task ProcessPage(ICrawlerRepository crawlerRepository, UrlModel urlForProcess, BatchPart batchPart,
+        CancellationToken token = default)
+    {
+        try
+        {
+            var uri = new Uri(urlForProcess.UrlName);
+
+            DateTime startedAt = DateTime.Now;
+            _consoleFormatter.WriteInSameLine("Downloading", uri.ToString());
+
+            GetOnePageContentResult getOnePageContentResult;
+            //მოიქაჩოს მისამართის მიხედვით Gz კონტენტი გახსნით
+            getOnePageContentResult =
+                urlForProcess.IsSiteMap && string.Equals(urlForProcess.ExtensionNavigation.ExtName, ".gz",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? await GetOnePageContent(uri, EContentType.SiteMapGzFile, token)
+                    :
+                    //მოიქაჩოს მისამართის მიხედვით კონტენტი
+                    await GetOnePageContent(uri, EContentType.Http, token);
+
+            string? content = getOnePageContentResult.Content;
+            HttpStatusCode statusCode = getOnePageContentResult.StatusCode;
+            DateTime? lastModifiedDate = getOnePageContentResult.LastModified;
+            string? location = getOnePageContentResult.Location;
+
+            if (content is null)
+            {
+                if (statusCode == HttpStatusCode.Redirect && location is not null)
+                {
+                    //თუ location არასრული მისამართია, მაშინ უნდა დაანგარიშდეს სრული მისამართი
+                    if (Uri.TryCreate(location, UriKind.Absolute, out Uri? locationUri))
+                    {
+                        // location is already absolute
+                    }
+                    else
+                    {
+                        // location is relative, resolve against original uri
+                        locationUri = new Uri(uri, location);
+                    }
+
+                    _consoleFormatter.WriteInSameLine("Page is redirected to:", locationUri.ToString());
+                    _consoleFormatter.UseCurrentLine();
+                    TrySaveUrl(crawlerRepository, locationUri.ToString(), urlForProcess.UrlId, batchPart.BpId);
+                    //დავადასტუროთ, რომ ამ გვერდის გაანალიზება ვერ მოხდა.
+                    crawlerRepository.CreateContentAnalysisRecord(batchPart.BpId, urlForProcess.UrlId, statusCode,
+                        lastModifiedDate);
+                    return;
+                }
+
+                //დავადასტუროთ, რომ ამ გვერდის გაანალიზება ვერ მოხდა.
+                crawlerRepository.CreateContentAnalysisRecord(batchPart.BpId, urlForProcess.UrlId, statusCode,
+                    lastModifiedDate);
+
+                //StShared.WriteWarningLine($"Page is not Loaded: {uri}", true);
+                _consoleFormatter.WriteInSameLine("Page is not Loaded", uri.ToString());
+                _consoleFormatter.UseCurrentLine();
+
+                return;
+            }
+
+            //urlForProcess.LastDownloaded = DateTime.Now;
+            //urlForProcess.DownloadTryCount++;
+            //_repository.UpdateUrlData(urlForProcess);
+
+            //გაანალიზდეს კონტენტი კონტენტის ტიპის მიხედვით
+            _consoleFormatter.WriteInSameLine("Analyze content of", uri.ToString());
+
+            //robots.txt, sitemap, html
+            if (uri.LocalPath == "/robots.txt")
+                //გავაანალიზოთ როგორც robots.txt
+            {
+                AnalyzeAsRobotsText(crawlerRepository, content, urlForProcess.UrlId, batchPart.BpId,
+                    urlForProcess.SchemeId, urlForProcess.HostId);
+            }
+            else if (urlForProcess.IsSiteMap)
+                //გავაანალიზოთ როგორც SiteMap
+            {
+                AnalyzeAsSiteMap(crawlerRepository, content, urlForProcess.UrlId, batchPart.BpId);
+            }
+            else
+                //გავაანალიზოთ როგორც Html
+            {
+                AnalyzeAsHtml(crawlerRepository, content, urlForProcess, batchPart);
+            }
+
+            //გაანალიზების შედეგად ნაპოვნი მისამართები დარეგისტრირდეს ბაზაში TrySaveUrl მეთოდის გამოყენებით
+
+            //გაანალიზების შედეგად ნაპოვნი ქართული სიტყვები დარეგისტრირდეს ბაზაში
+
+            //ასევე უნდა დარეგისტრირდეს სიტყვისა და მისამართის თანაკვეთა (ანუ სადაც ვიპოვეთ ეს სიტყვა)1
+
+            _consoleFormatter.WriteInSameLine("Copy Graph", uri.ToString());
+
+            var urlGraphDeDuplicator = new UrlGraphDeDuplicator(crawlerRepository);
+            urlGraphDeDuplicator.CopyToRepository();
+
+            //დავადასტუროთ, რომ ამ გვერდის გაანალიზება მოხდა.
+            crawlerRepository.CreateContentAnalysisRecord(batchPart.BpId, urlForProcess.UrlId, statusCode,
+                lastModifiedDate);
+
+            _consoleFormatter.WriteInSameLine("Finished",
+                $"{uri} ({DateTime.Now.MillisecondsDifference(startedAt)}ms)");
+        }
+        catch (Exception e)
+        {
+            StShared.WriteErrorLine($"Error when working on {urlForProcess.UrlName}", true);
+            StShared.WriteException(e, true);
+        }
+    }
+
+    public async ValueTask<bool> DoOnePage(string strUrName, CancellationToken token = default)
+    {
+        _procData = new ProcData();
+
+        UrlData? urlData = GetUrlData(_crawlerRepository, strUrName);
+        if (urlData == null)
+        {
+            StShared.WriteErrorLine($"Cannot prepare data for uri {strUrName}", true);
+            return false;
+        }
+
+        ContentAnalysis? contentAnalysis = urlData.Url is not null
+            ? _crawlerRepository.GetContentAnalysis(_batchPart.BpId, urlData.Url.UrlId)
+            : null;
+        if (contentAnalysis != null)
+        {
+            if (!_noPrompt && !Inputer.InputBool(
+                    $"The page {strUrName} already analyzed. Do you wont to delete Content data for reanalyze", true,
+                    false))
+            {
+                return false;
+            }
+
+            _crawlerRepository.DeleteContentAnalysis(contentAnalysis);
+        }
+
+        await SaveUrlAndProcessOnePage(_crawlerRepository, urlData.CheckedUrName, token: token);
+
+        return true;
+    }
+}

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersDataEdit\AppCliTools.CliParametersDataEdit.csproj" />
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliTools\AppCliTools.CliTools.csproj" />
+    <ProjectReference Include="..\..\CrawlerDomain\CrawlerDbModels\CrawlerDbModels.csproj" />
+    <ProjectReference Include="..\..\CrawlerDomain\CrawlerRepoInterfaces\CrawlerRepoInterfaces.csproj" />
+    <ProjectReference Include="..\..\CrawlerInfrastructure\CrawlerDbPersistence\CrawlerDbPersistence.csproj" />
+    <ProjectReference Include="..\..\CrawlerInfrastructure\CrawlerRepositories\CrawlerRepositories.csproj" />
+    <ProjectReference Include="..\..\SystemTools\SystemTools.SerilogStuff\SystemTools.SerilogStuff.csproj" />
+    <ProjectReference Include="..\CrawlerConsoleData\CrawlerConsoleData.csproj" />
+    <ProjectReference Include="..\SystemTools.DependencyInjection\SystemTools.DependencyInjection.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+</Project>

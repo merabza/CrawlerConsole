@@ -1,0 +1,72 @@
+﻿using AppCliTools.CliMenu;
+using AppCliTools.CliParametersDataEdit;
+using AppCliTools.CliTools.Services.MenuBuilder;
+using CrawlerConsole.Menu.CrawlerParametersEdit;
+using CrawlerConsole.Menu.Tasks;
+using CrawlerConsoleData.Models;
+using CrawlerDbPersistence;
+using CrawlerRepoInterfaces;
+using CrawlerRepositories;
+using Microsoft.Extensions.DependencyInjection;
+using ParametersManagement.LibDatabaseParameters;
+using ParametersManagement.LibParameters;
+using ParametersManagement.LibParameters.DependencyInjection;
+using Serilog.Events;
+using SystemTools.DependencyInjection;
+using SystemTools.SerilogStuff.DependencyInjection;
+using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.DependencyInjection;
+
+namespace CrawlerConsole.DependencyInjection;
+
+public static class CrawlerServices
+{
+    public static IServiceCollection AddServices(this IServiceCollection services, string appName,
+        CrawlerConsoleParameters par, string parametersFileName)
+    {
+        var databaseServerConnections = new DatabaseServerConnections(par.DatabaseServerConnections);
+
+        (EDatabaseProvider? dataProvider, string? connectionString, int commandTimeout) =
+            DbConnectionFactory.GetDataProviderConnectionStringCommandTimeOut(par.DatabaseParameters,
+                databaseServerConnections);
+
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            services.AddContextByProvider<CrawlerDbContext>(dataProvider, connectionString, commandTimeout);
+        }
+
+        // @formatter:off
+        services
+            .AddSerilogLoggerService(LogEventLevel.Information, appName, par.LogFolder)
+            .AddHttpClient()
+            .AddSingleton<ICrawlerRepositoryCreatorFactory, CrawlerRepositoryCreatorFactory>()
+            .AddScoped<ICrawlerRepository, CrawlerRepository>()
+
+            //.AddMemoryCache()
+            //.AddSingleton<MenuParameters>()
+            .AddTransientAllStrategies<IMenuCommandListFactoryStrategy>(
+                typeof(TasksListFactoryStrategy).Assembly)
+            //.AddSingleton<IProcesses, Processes>()
+            .AddSingleton<IMenuBuilder, CrawlerMenuBuilder>()
+            .AddTransientAllStrategies<IMenuCommandFactoryStrategy>(
+                typeof(CrawlerParametersEditorCliMenuCommandFactoryStrategy).Assembly)
+            //.AddTransientAllStrategies<IToolCommandFactoryStrategy>(
+            //    typeof(CorrectNewDatabaseToolCommandFactoryStrategy).Assembly,
+            //    typeof(JetBrainsCleanupCodeRunnerToolCommandFactoryStrategy).Assembly,
+            //    typeof(JsonFromProjectDbProjectGetterFactoryStrategy).Assembly,
+            //    typeof(GenerateApiRoutesToolCommandFactoryStrategy).Assembly,
+            //    typeof(ApplicationSettingsEncoderToolCommandFactoryStrategy).Assembly)
+            .AddApplication(x =>
+            {
+                x.AppName = appName;
+            })
+            .AddMainParametersManager<ParametersManager>(x =>
+            {
+                x.ParametersFileName = parametersFileName;
+                x.Par = par;
+            });
+
+        // @formatter:on
+        return services;
+    }
+}

@@ -1,0 +1,76 @@
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using AppCliTools.CliMenu;
+using AppCliTools.LibDataInput;
+using CrawlerConsoleData.Models;
+using ParametersManagement.LibParameters;
+using SystemTools.SystemToolsShared;
+
+namespace CrawlerConsole.MenuCommands;
+
+public sealed class NewStartPointCliMenuCommand : CliMenuCommand
+{
+    private readonly IParametersManager _parametersManager;
+    private readonly string _taskName;
+
+    public NewStartPointCliMenuCommand(IParametersManager parametersManager, string taskName) : base("New Start Point",
+        EMenuAction.Reload)
+    {
+        _parametersManager = parametersManager;
+        _taskName = taskName;
+    }
+
+    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    {
+        var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
+
+        TaskModel? task = parameters.GetTask(_taskName);
+
+        if (task == null)
+        {
+            StShared.WriteErrorLine($"Task with name {_taskName} not found", true);
+            return false;
+        }
+
+        //ამოცანის შექმნის პროცესი დაიწყო
+        Console.WriteLine("Create new Start Point started");
+
+        //ახალი ამოცანის სახელის შეტანა პროგრამაში
+        string? newStartPoint = Inputer.InputText("New Start Point", null);
+        if (string.IsNullOrWhiteSpace(newStartPoint))
+        {
+            return false;
+        }
+        //გადავამოწმოთ ხომ არ არსებობს იგივე სახელით სხვა ამოცანა.
+
+        if (task.StartPoints.Contains(newStartPoint))
+        {
+            StShared.WriteErrorLine(
+                $"Start Point with Name {newStartPoint} is already exists. cannot create Start Point with this name. ",
+                true);
+            return false;
+        }
+
+        //ახალი ამოცანის შექმნა და ჩამატება ამოცანების სიაში
+        task.StartPoints.Add(newStartPoint);
+
+        //პარამეტრების შენახვა (ცვლილებების გათვალისწინებით)
+        await _parametersManager.Save(parameters, "Create New Task Finished", null, cancellationToken);
+
+        //ცვლილებების შენახვა დასრულდა
+        //Console.WriteLine("Create new Task Finished");
+
+        //მენიუს შესახებ სტატუსის დაფიქსირება
+        //ცვლილებების გამო მენიუს თავიდან ჩატვირთვა და აწყობა
+        //რადგან მენიუ თავიდან აეწყობა, საჭიროა მიეთითოს რომელ პროექტში ვიყავით, რომ ისევ იქ დავბრუნდეთ
+        //MenuState = new MenuState { RebuildMenu = true, NextMenu = new List<string> { _projectName } };
+        MenuAction = EMenuAction.Reload;
+
+        //პაუზა იმისათვის, რომ პროცესის მიმდინარეობის შესახებ წაკითხვა მოვასწროთ და მივხვდეთ, რომ პროცესი დასრულდა
+        //StShared.Pause();
+
+        //ყველაფერი კარგად დასრულდა
+        return true;
+    }
+}
