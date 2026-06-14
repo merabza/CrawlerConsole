@@ -13,8 +13,6 @@ namespace CrawlerConsole.MenuCommands;
 public sealed class TaskCliMenuCommand : CliMenuCommand
 {
     //private readonly ICrawlerRepository _crawlerRepository;
-
-    //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
     //private readonly IHttpClientFactory _httpClientFactory;
     //private readonly ILogger _logger;
     private readonly IParametersManager _parametersManager;
@@ -56,7 +54,7 @@ public sealed class TaskCliMenuCommand : CliMenuCommand
 
         //var crawlerRunner = new CrawlerRunner(crawlerRunnerToolAction, _logger);
         //return ValueTask.FromResult(crawlerRunner.Run());
-
         return ValueTask.FromResult(false);
+
     }
 }

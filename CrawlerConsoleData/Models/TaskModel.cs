@@ -6,6 +6,8 @@ namespace CrawlerConsoleData.Models;
 public sealed class TaskModel : ItemData
 {
     public List<string> StartPoints { get; set; } = [];
+    public string? ApiName { get; set; }
+
 
     public bool CheckNewStartPointValid(string oldStartPoint, string newStartPoint)
     {

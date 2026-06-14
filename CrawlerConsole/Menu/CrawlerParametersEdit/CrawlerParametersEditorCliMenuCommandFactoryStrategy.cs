@@ -19,7 +19,7 @@ public class CrawlerParametersEditorCliMenuCommandFactoryStrategy(
     {
         var parameters = (CrawlerConsoleParameters)parametersManager.Parameters;
 
-        var supportToolsParametersEditor = new CrawlerParametersEditor(application, parameters,
+        var supportToolsParametersEditor = new CrawlerConsoleParametersEditor(application, parameters,
             parametersManager, logger, httpClientFactory);
         return new ParametersEditorListCliMenuCommand(supportToolsParametersEditor);
     }

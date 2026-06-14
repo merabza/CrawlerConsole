@@ -1,12 +1,14 @@
 ﻿using System.Net.Http;
 using AppCliTools.CliParameters;
 using AppCliTools.CliParameters.FieldEditors;
+using AppCliTools.CliParametersApiClientsEdit;
 using AppCliTools.CliParametersDataEdit.Cruders;
 using AppCliTools.CliParametersDataEdit.FieldEditors;
 using AppCliTools.CliParametersEdit.Cruders;
 using CrawlerConsole.Cruders;
 using CrawlerConsoleData.Models;
 using Microsoft.Extensions.Logging;
+using ParametersManagement.LibApiClientParameters;
 using ParametersManagement.LibDatabaseParameters;
 using ParametersManagement.LibFileParameters.Models;
 using ParametersManagement.LibParameters;
@@ -14,11 +16,11 @@ using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole;
 
-public sealed class CrawlerParametersEditor : ParametersEditor
+public sealed class CrawlerConsoleParametersEditor : ParametersEditor
 {
-    public CrawlerParametersEditor(IApplication application, IParameters parameters,
+    public CrawlerConsoleParametersEditor(IApplication application, IParameters parameters,
         IParametersManager parametersManager, ILogger logger, IHttpClientFactory httpClientFactory) : base(
-        "Crawler Parameters Editor", parameters, parametersManager)
+        "CrawlerConsole Parameters Editor", parameters, parametersManager)
     {
         FieldEditors.Add(new FolderPathFieldEditor(nameof(CrawlerConsoleParameters.LogFolder)));
 
@@ -41,7 +43,8 @@ public sealed class CrawlerParametersEditor : ParametersEditor
         //    nameof(CrawlerConsoleParameters.DatabaseServerConnections)));
 
         FieldEditors.Add(new DictionaryFieldEditor<DatabaseServerConnectionCruder, DatabaseServerConnectionData>(
-            nameof(CrawlerConsoleParameters.DatabaseServerConnections), logger, httpClientFactory, parametersManager));
+            nameof(CrawlerConsoleParameters.DatabaseServerConnections), application, logger, httpClientFactory,
+            parametersManager));
 
         FieldEditors.Add(new DatabaseParametersFieldEditor(application, logger, httpClientFactory,
             nameof(CrawlerConsoleParameters.DatabaseParameters), parametersManager));
@@ -53,5 +56,8 @@ public sealed class CrawlerParametersEditor : ParametersEditor
         FieldEditors.Add(
             new DictionaryFieldEditor<FileStorageCruder, FileStorageData>(nameof(CrawlerConsoleParameters.FileStorages),
                 logger, parametersManager));
+
+        FieldEditors.Add(new DictionaryFieldEditor<ApiClientCruder, ApiClientSettings>(
+            nameof(CrawlerConsoleParameters.ApiClients), logger, httpClientFactory, parametersManager));
     }
 }

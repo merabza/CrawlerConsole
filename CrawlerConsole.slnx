@@ -27,6 +27,9 @@
     <Project Path="../CrawlerInfrastructure/CrawlerDbPersistence/CrawlerDbPersistence.csproj" />
     <Project Path="../CrawlerInfrastructure/CrawlerRepositories/CrawlerRepositories.csproj" />
   </Folder>
+  <Folder Name="/CrawlerServiceShared/">
+    <Project Path="../CrawlerServiceShared/CrawlerServiceShared.Contracts/CrawlerServiceShared.Contracts.csproj" />
+  </Folder>
   <Folder Name="/DatabaseTools/">
     <Project Path="../DatabaseTools/DatabaseTools.DbTools/DatabaseTools.DbTools.csproj" />
     <Project Path="../DatabaseTools/DatabaseTools.DbToolsFactory/DatabaseTools.DbToolsFactory.csproj" />
@@ -50,6 +53,7 @@
     <Project Path="../SystemTools/SystemTools.BackgroundTasks/SystemTools.BackgroundTasks.csproj" />
     <Project Path="../SystemTools/SystemTools.DatabaseToolsShared/SystemTools.DatabaseToolsShared.csproj" />
     <Project Path="../SystemTools/SystemTools.DomainShared/SystemTools.DomainShared.csproj" />
+    <Project Path="../SystemTools/SystemTools.ReCounterContracts/SystemTools.ReCounterContracts.csproj" />
     <Project Path="../SystemTools/SystemTools.SerilogStuff/SystemTools.SerilogStuff.csproj" />
     <Project Path="../SystemTools/SystemTools.StringMessagesApiContracts/SystemTools.StringMessagesApiContracts.csproj" />
     <Project Path="../SystemTools/SystemTools.SystemToolsShared/SystemTools.SystemToolsShared.csproj" />
