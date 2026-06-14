@@ -12,6 +12,7 @@ public sealed class SchemeFieldEditor : FieldEditor<string>
 {
     private readonly ICrawlerRepository _crawlerRepository;
 
+    // ReSharper disable once ConvertToPrimaryConstructor
     public SchemeFieldEditor(string propertyName, ICrawlerRepository crawlerRepository) : base(propertyName)
     {
         _crawlerRepository = crawlerRepository;

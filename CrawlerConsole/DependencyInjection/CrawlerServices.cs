@@ -37,9 +37,8 @@ public static class CrawlerServices
         //მონაცემთა ბაზასთან დაკავშირებული სერვისები ემატება მხოლოდ მაშინ, თუ connectionString არსებობს
         //და ბაზასთან დაკავშირება შესაძლებელია. წინააღმდეგ შემთხვევაში პროგრამა მაინც უნდა გაეშვას,
         //რომ მომხმარებელმა შეძლოს ბაზასთან დასაკავშირებელი პარამეტრების შეყვანა.
-        if (!string.IsNullOrEmpty(connectionString) &&
-            DatabaseConnectionChecker.CheckConnection(par.DatabaseParameters, databaseServerConnections, appName,
-                NullLogger.Instance))
+        if (!string.IsNullOrEmpty(connectionString) && DatabaseConnectionChecker.CheckConnection(par.DatabaseParameters,
+                databaseServerConnections, appName, NullLogger.Instance))
         {
             // @formatter:off
             services

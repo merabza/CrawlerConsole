@@ -18,7 +18,6 @@ public sealed class TaskCliMenuCommand : CliMenuCommand
     private readonly IParametersManager _parametersManager;
     private readonly string _taskName;
 
-    // ReSharper disable once ConvertToPrimaryConstructor
     public TaskCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
         ICrawlerRepository crawlerRepository, IParametersManager parametersManager, string taskName) : base(
         "Run this task", EMenuAction.Reload)
@@ -55,6 +54,5 @@ public sealed class TaskCliMenuCommand : CliMenuCommand
         //var crawlerRunner = new CrawlerRunner(crawlerRunnerToolAction, _logger);
         //return ValueTask.FromResult(crawlerRunner.Run());
         return ValueTask.FromResult(false);
-
     }
 }

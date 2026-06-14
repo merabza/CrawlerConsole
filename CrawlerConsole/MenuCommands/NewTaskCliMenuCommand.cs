@@ -15,6 +15,7 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
     private readonly IParametersManager _parametersManager;
 
     //ახალი აპლიკაციის ამოცანის შექმნა
+
     // ReSharper disable once ConvertToPrimaryConstructor
     public NewTaskCliMenuCommand(IParametersManager parametersManager) : base("New Task", EMenuAction.Reload)
     {

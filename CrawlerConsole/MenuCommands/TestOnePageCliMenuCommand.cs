@@ -1,68 +1,57 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AppCliTools.CliMenu;
+using AppCliTools.CliParametersApiClientsEdit.CliMenuCommands;
+using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
+using CrawlerConsole.ToolCommands;
 using CrawlerConsoleData.Models;
-using CrawlerRepoInterfaces;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
 using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.MenuCommands;
 
-public sealed class TestOnePageCliMenuCommand : CliMenuCommand
+public sealed class TestOnePageCliMenuCommand : ApiCliMenuCommand
 {
-    //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
-    //private readonly ICrawlerRepository _crawlerRepository;
-    //private readonly IHttpClientFactory _httpClientFactory;
-    //private readonly ILogger _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger _logger;
     private readonly IParametersManager _parametersManager;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public TestOnePageCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ICrawlerRepository crawlerRepository, IParametersManager parametersManager, string taskName) : base(
-        "Test One Page", EMenuAction.Reload)
+        IParametersManager parametersManager, string taskName) : base(parametersManager, taskName, "Test One Page")
     {
-        //_logger = logger;
-        //_httpClientFactory = httpClientFactory;
+        _logger = logger;
+        _httpClientFactory = httpClientFactory;
         _parametersManager = parametersManager;
         _taskName = taskName;
-        //_crawlerRepository = crawlerRepository;
     }
 
-    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
         var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
-        TaskModel? task = parameters.GetTask(_taskName);
-        if (task == null)
+        TaskModel task = parameters.GetTaskRequired(_taskName);
+        string apiName = parameters.GetApiNameRequired(_taskName);
+
+        ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(apiName);
+        if (apiToolCommandParameters is null)
         {
-            StShared.WriteErrorLine($"Task with name {_taskName} is not found", true);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         string? strUrl = Inputer.InputText("Page for Test", null);
         if (string.IsNullOrWhiteSpace(strUrl))
         {
             StShared.WriteErrorLine("Page for Test is empty", true);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
-        //var par = ParseOnePageParameters.Create(parameters);
-        //if (par is null)
-        //{
-        //    StShared.WriteErrorLine("ParseOnePageParameters does not created", true);
-        //    return ValueTask.FromResult(false);
-        //}
+        var crawlerRunnerToolAction = new OnePageCrawlerRunnerApiClientToolCommand(_logger, _httpClientFactory,
+            apiToolCommandParameters, new Uri(strUrl), task.StartPoints, _taskName);
 
-        //var crawlerRunnerToolAction = new OnePageCrawlerRunnerToolAction(_logger, _httpClientFactory,
-        //    _crawlerRepository, parameters, par, _taskName, task, strUrl);
-
-        //var crawlerRunner = new CrawlerRunner(crawlerRunnerToolAction, _logger);
-        //return ValueTask.FromResult(crawlerRunner.Run());
-
-        return ValueTask.FromResult(false);
-
+        return await crawlerRunnerToolAction.Run(cancellationToken);
     }
 }

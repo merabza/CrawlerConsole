@@ -17,7 +17,6 @@ public sealed class HostCruder : Cruder
     private readonly ICrawlerRepository _crawlerRepository;
     //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
 
-    // ReSharper disable once ConvertToPrimaryConstructor
     public HostCruder(ICrawlerRepository crawlerRepository) : base("Host", "Hosts")
     {
         //_crawlerRepositoryCreatorFactory = crawlerRepositoryCreatorFactory;

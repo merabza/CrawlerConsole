@@ -38,7 +38,7 @@
 //    private readonly ParametersManager _parametersManager;
 //    private readonly ServiceProvider _serviceProvider;
 
-//    // ReSharper disable once ConvertToPrimaryConstructor
+//    
 //    public CrawlerCliAppLoop(ILogger logger, IHttpClientFactory httpClientFactory, ParametersManager parametersManager,
 //        ServiceProvider serviceProvider)
 //    {

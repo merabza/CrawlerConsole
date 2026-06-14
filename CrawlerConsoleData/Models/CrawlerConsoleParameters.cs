@@ -1,5 +1,6 @@
 //Created by ProjectParametersClassCreator at 4/22/2021 17:17:01
 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -48,6 +49,20 @@ public sealed class CrawlerConsoleParameters : IParametersWithDatabaseServerConn
     public TaskModel? GetTask(string taskName)
     {
         return Tasks.GetValueOrDefault(taskName);
+    }
+
+    public TaskModel GetTaskRequired(string taskName)
+    {
+        return GetTask(taskName) ?? throw new InvalidOperationException($"Task with name {taskName} does not exists");
+    }
+
+    public string GetApiNameRequired(string taskName)
+    {
+        TaskModel task = GetTask(taskName) ??
+                         throw new InvalidOperationException($"Task with name {taskName} does not exists");
+        return string.IsNullOrWhiteSpace(task.ApiName)
+            ? throw new InvalidOperationException($"Server does not specified for ApiClient with name {taskName}")
+            : task.ApiName;
     }
 
     public bool CheckNewTaskNameValid(string oldTaskName, string newTaskName)

@@ -16,7 +16,7 @@
 //{
 //    private readonly CrawlerConsoleParameters _par;
 
-//    // ReSharper disable once ConvertToPrimaryConstructor
+//    
 //    public CrawlerServicesCreator(CrawlerConsoleParameters par) : base(par.LogFolder, null, "Crawler")
 //    {
 //        _par = par;

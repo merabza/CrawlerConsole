@@ -15,7 +15,6 @@ public sealed class HostByBatchCruder : Cruder
 {
     private readonly Batch _batch;
 
-    //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
     private readonly ICrawlerRepository _crawlerRepository;
 
     // ReSharper disable once ConvertToPrimaryConstructor
