@@ -3,7 +3,9 @@ using System.Linq;
 using System.Net.Http;
 using AppCliTools.CliMenu;
 using AppCliTools.CliMenu.CliMenuCommands;
+using AppCliTools.CliParameters.CliMenuCommands;
 using AppCliTools.LibDataInput;
+using CrawlerConsole.Cruders;
 using CrawlerConsoleData.Models;
 using CrawlerRepoInterfaces;
 using Microsoft.Extensions.Logging;
@@ -15,6 +17,7 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
 {
     //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
     private readonly ICrawlerRepository _crawlerRepository;
+    private readonly string _taskName;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger _logger;
     private readonly IParametersManager _parametersManager;
@@ -27,6 +30,7 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         _httpClientFactory = httpClientFactory;
         _parametersManager = parametersManager;
         _crawlerRepository = crawlerRepository;
+        _taskName = taskName;
     }
 
     public override CliMenuSet GetSubMenu()
@@ -37,6 +41,13 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(deleteTaskCommand);
 
         taskSubMenuSet.AddMenuItem(new EditTaskNameCliMenuCommand(_parametersManager, Name));
+
+        //პროექტის პარამეტრი
+        var taskCruder = TaskCruder.Create(_logger, _httpClientFactory, _parametersManager);
+        var editCommand = new EditItemAllFieldsInSequenceCliMenuCommand(taskCruder, _taskName);
+        taskSubMenuSet.AddMenuItem(editCommand);
+
+        taskCruder.FillDetailsSubMenu(taskSubMenuSet, _taskName);
 
         taskSubMenuSet.AddMenuItem(new TaskCliMenuCommand(_logger, _httpClientFactory, _crawlerRepository,
             _parametersManager, Name));
