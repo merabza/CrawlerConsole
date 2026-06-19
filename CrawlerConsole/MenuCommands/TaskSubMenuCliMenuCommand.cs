@@ -53,11 +53,9 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(new TaskCliMenuCommand(_logger, _httpClientFactory, _crawlerRepository,
             _parametersManager, Name));
 
-        taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
-            Name));
+        taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _httpClientFactory, _parametersManager, Name));
 
-        taskSubMenuSet.AddMenuItem(new RunBatchCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
-            Name));
+        taskSubMenuSet.AddMenuItem(new RunBatchCliMenuCommand(_logger, _httpClientFactory, _parametersManager, Name));
 
         taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
             Name));

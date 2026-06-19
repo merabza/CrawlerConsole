@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParametersApiClientsEdit.Parameters;
@@ -20,8 +18,8 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolCommand
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public RunBatchApiClientToolCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ApiToolCommandParameters par, string batchName) : base(logger,
-        httpClientFactory, ActionName, par, null, ActionName, true)
+        ApiToolCommandParameters par, string batchName) : base(logger, httpClientFactory, ActionName, par, null,
+        ActionName, true)
     {
         _batchName = batchName;
     }

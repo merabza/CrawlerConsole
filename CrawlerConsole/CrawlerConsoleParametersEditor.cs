@@ -23,41 +23,31 @@ public sealed class CrawlerConsoleParametersEditor : ParametersEditor
         "CrawlerConsole Parameters Editor", parameters, parametersManager)
     {
         FieldEditors.Add(new FolderPathFieldEditor(nameof(CrawlerConsoleParameters.LogFolder)));
-
-        //FieldEditors.Add(new DatabaseServerConnectionNameFieldEditor(logger, httpClientFactory,
-        //    nameof(CrawlerConsoleParameters.DatabaseConnectionName), parametersManager, true));
-
-        //FieldEditors.Add(new IntFieldEditor(nameof(CrawlerConsoleParameters.CommandTimeOut), 10000));
         FieldEditors.Add(new IntFieldEditor(nameof(CrawlerConsoleParameters.LoadPagesMaxCount), 10000));
+
         FieldEditors.Add(new TextFieldEditor(nameof(CrawlerConsoleParameters.Alphabet),
             "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ"));
+
         FieldEditors.Add(new TextFieldEditor(nameof(CrawlerConsoleParameters.ExtraSymbols), "-–"));
 
-        //FieldEditors.Add(new PunctuationsFieldEditor(nameof(CrawlerConsoleParameters.Punctuations), parametersManager,
-        //    logger));
-
         FieldEditors.Add(new DictionaryFieldEditor<PunctuationCruder, PunctuationModel>(
-            nameof(CrawlerConsoleParameters.Punctuations), logger, parametersManager));
-
-        //FieldEditors.Add(new DatabaseServerConnectionsFieldEditor(logger, httpClientFactory, parametersManager,
-        //    nameof(CrawlerConsoleParameters.DatabaseServerConnections)));
+            nameof(CrawlerConsoleParameters.Punctuations), x => new PunctuationCruder(logger, parametersManager, x)));
 
         FieldEditors.Add(new DictionaryFieldEditor<DatabaseServerConnectionCruder, DatabaseServerConnectionData>(
-            nameof(CrawlerConsoleParameters.DatabaseServerConnections), application, logger, httpClientFactory,
-            parametersManager));
+            nameof(CrawlerConsoleParameters.DatabaseServerConnections),
+            x => new DatabaseServerConnectionCruder(application, logger, httpClientFactory, parametersManager, x)));
 
         FieldEditors.Add(new DatabaseParametersFieldEditor(application, logger, httpClientFactory,
             nameof(CrawlerConsoleParameters.DatabaseParameters), parametersManager));
 
-        FieldEditors.Add(
-            new DictionaryFieldEditor<SmartSchemaCruder, SmartSchema>(nameof(CrawlerConsoleParameters.SmartSchemas),
-                parametersManager));
+        FieldEditors.Add(new DictionaryFieldEditor<SmartSchemaCruder, SmartSchema>(
+            nameof(CrawlerConsoleParameters.SmartSchemas), x => new SmartSchemaCruder(parametersManager, x)));
 
-        FieldEditors.Add(
-            new DictionaryFieldEditor<FileStorageCruder, FileStorageData>(nameof(CrawlerConsoleParameters.FileStorages),
-                logger, parametersManager));
+        FieldEditors.Add(new DictionaryFieldEditor<FileStorageCruder, FileStorageData>(
+            nameof(CrawlerConsoleParameters.FileStorages), x => new FileStorageCruder(logger, parametersManager, x)));
 
         FieldEditors.Add(new DictionaryFieldEditor<ApiClientCruder, ApiClientSettings>(
-            nameof(CrawlerConsoleParameters.ApiClients), logger, httpClientFactory, parametersManager));
+            nameof(CrawlerConsoleParameters.ApiClients),
+            x => new ApiClientCruder(logger, httpClientFactory, parametersManager, x)));
     }
 }

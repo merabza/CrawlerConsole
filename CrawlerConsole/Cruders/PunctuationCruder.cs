@@ -13,7 +13,7 @@ public sealed class PunctuationCruder : ParCruder<PunctuationModel>
 {
     private readonly ILogger _logger;
 
-    public PunctuationCruder(ILogger logger, ParametersManager parametersManager,
+    public PunctuationCruder(ILogger logger, IParametersManager parametersManager,
         Dictionary<string, PunctuationModel> currentValuesDictionary) : base(parametersManager, currentValuesDictionary,
         "Punctuation", "Punctuations")
     {
