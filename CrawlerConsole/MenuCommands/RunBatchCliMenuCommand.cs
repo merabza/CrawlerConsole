@@ -1,11 +1,11 @@
-﻿using System.Net.Http;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParametersApiClientsEdit.CliMenuCommands;
 using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
 using CrawlerConsole.ToolCommands;
-using CrawlerConsoleData.Models;
+using CrawlerRepoInterfaces;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
 using SystemTools.SystemToolsShared;
@@ -14,27 +14,38 @@ namespace CrawlerConsole.MenuCommands;
 
 public sealed class RunBatchCliMenuCommand : ApiCliMenuCommand
 {
+    private readonly ICrawlerRepository _crawlerRepository;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger _logger;
-    private readonly IParametersManager _parametersManager;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public RunBatchCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        IParametersManager parametersManager, string taskName) : base(parametersManager, taskName, "Run Batch")
+        IParametersManager parametersManager, ICrawlerRepository crawlerRepository, string taskName) : base(
+        parametersManager, taskName, "Run Batch")
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
-        _parametersManager = parametersManager;
+        _crawlerRepository = crawlerRepository;
         _taskName = taskName;
     }
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
-        string apiName = parameters.GetApiNameRequired(_taskName);
+        var task = _crawlerRepository.GetTaskByName(_taskName);
+        if (task is null)
+        {
+            StShared.WriteErrorLine($"Task with name {_taskName} does not exists", true);
+            return false;
+        }
 
-        ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(apiName);
+        if (string.IsNullOrWhiteSpace(task.ApiName))
+        {
+            StShared.WriteErrorLine($"Server does not specified for task {_taskName}", true);
+            return false;
+        }
+
+        ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(task.ApiName);
         if (apiToolCommandParameters is null)
         {
             return false;

@@ -14,7 +14,7 @@ try
 {
     Console.WriteLine("Loading...");
 
-    const string appName = "Crawler";
+    const string appName = "Crawler Console";
     var argParser = new ArgumentsParser<CrawlerConsoleParameters>(args, appName);
 
     switch (argParser.Analysis())

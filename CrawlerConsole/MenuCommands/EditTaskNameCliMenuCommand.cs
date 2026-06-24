@@ -1,73 +1,58 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerConsoleData.Models;
-using ParametersManagement.LibParameters;
+using CrawlerRepoInterfaces;
 using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
 {
-    private readonly IParametersManager _parametersManager;
+    private readonly ICrawlerRepository _crawlerRepository;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public EditTaskNameCliMenuCommand(IParametersManager parametersManager, string taskName) : base("Edit task Name",
+    public EditTaskNameCliMenuCommand(ICrawlerRepository crawlerRepository, string taskName) : base("Edit task Name",
         EMenuAction.LevelUp, EMenuAction.Reload, taskName)
     {
-        _parametersManager = parametersManager;
+        _crawlerRepository = crawlerRepository;
         _taskName = taskName;
     }
 
-    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
-
-        TaskModel? task = parameters.GetTask(_taskName);
-        if (task == null)
+        var task = _crawlerRepository.GetTaskByName(_taskName);
+        if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} is not found", true);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
         //ამოცანის სახელის რედაქტირება
         string? newTaskName = Inputer.InputText("change  Task Name ", _taskName);
         if (string.IsNullOrWhiteSpace(newTaskName))
         {
-            return false;
+            return ValueTask.FromResult(false);
         }
 
         if (_taskName == newTaskName)
         {
-            return false; //თუ ცვლილება მართლაც მოითხოვეს
+            return ValueTask.FromResult(false); //თუ ცვლილება მართლაც მოითხოვეს
         }
 
-        if (!parameters.CheckNewTaskNameValid(_taskName, newTaskName))
+        if (_crawlerRepository.GetTaskByName(newTaskName) is not null)
         {
             StShared.WriteErrorLine($"New Name For Task {newTaskName} is not valid", true);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        if (!parameters.RemoveTask(_taskName))
-        {
-            StShared.WriteErrorLine(
-                $"Cannot change  Task with name {_taskName} to {newTaskName}, because cannot remove this  task", true);
-            return false;
-        }
+        //სახელის შეცვლა ადგილზე — TaskId და Start Point-ები უცვლელი რჩება
+        task.TaskName = newTaskName;
+        _crawlerRepository.UpdateTask(task);
+        _crawlerRepository.SaveChanges();
 
-        if (!parameters.AddTask(newTaskName, task))
-        {
-            StShared.WriteErrorLine(
-                $"Cannot change  Task with name {_taskName} to {newTaskName}, because cannot add this  task", true);
-            return false;
-        }
-
-        await _parametersManager.Save(parameters, $" Task Renamed from {_taskName} To {newTaskName}", null,
-            cancellationToken);
-
-        return true;
+        return ValueTask.FromResult(true);
     }
 
     protected override string GetStatus()

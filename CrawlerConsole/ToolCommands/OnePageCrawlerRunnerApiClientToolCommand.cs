@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,17 +15,15 @@ namespace CrawlerConsole.ToolCommands;
 public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolCommand
 {
     public const string ActionName = "Clear RawWordsByLemmas";
-    private readonly IEnumerable<string> _startPoints;
     private readonly string _strUrl;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public OnePageCrawlerRunnerApiClientToolCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ApiToolCommandParameters par, Uri url, IEnumerable<string> startPoints, string taskName) : base(logger,
+        ApiToolCommandParameters par, Uri url, string taskName) : base(logger,
         httpClientFactory, ActionName, par, null, ActionName, true)
     {
         _strUrl = url.ToString();
-        _startPoints = startPoints;
         _taskName = taskName;
     }
 
@@ -57,7 +53,6 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolComm
             new TestOnePageRequest
             {
                 Url = _strUrl,
-                StartPoints = _startPoints.ToList(),
                 TaskName = _taskName,
                 DeleteContentForReanalyze = deleteContentForReanalyze,
                 NewPartsCreateLimit = newPartsCreateLimit

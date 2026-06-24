@@ -1,31 +1,28 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerConsoleData.Models;
-using ParametersManagement.LibParameters;
+using CrawlerDbModels;
+using CrawlerRepoInterfaces;
 using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class NewTaskCliMenuCommand : CliMenuCommand
 {
-    private readonly IParametersManager _parametersManager;
+    private readonly ICrawlerRepository _crawlerRepository;
 
     //ახალი აპლიკაციის ამოცანის შექმნა
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public NewTaskCliMenuCommand(IParametersManager parametersManager) : base("New Task", EMenuAction.Reload)
+    public NewTaskCliMenuCommand(ICrawlerRepository crawlerRepository) : base("New Task", EMenuAction.Reload)
     {
-        _parametersManager = parametersManager;
+        _crawlerRepository = crawlerRepository;
     }
 
-    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
-
         //ამოცანის შექმნის პროცესი დაიწყო
         Console.WriteLine("Create new Task started");
 
@@ -33,38 +30,22 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
         string? newTaskName = Inputer.InputText("New Task Name", null);
         if (string.IsNullOrEmpty(newTaskName))
         {
-            return false;
+            return ValueTask.FromResult(false);
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სახელით სხვა ამოცანა.
-
-        if (parameters.Tasks.Keys.Any(a => a == newTaskName))
+        if (_crawlerRepository.GetTaskByName(newTaskName) is not null)
         {
             StShared.WriteErrorLine(
                 $"Task with Name {newTaskName} is already exists. cannot create task with this name. ", true);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        //არსებული ინფორმაციის გამოყენებით ახალი ამოცანის შექმნა დაიწყო
-
-        //ახალი ამოცანის შექმნა და ჩამატება ამოცანების სიაში
-        parameters.Tasks.Add(newTaskName, new TaskModel());
-
-        //პარამეტრების შენახვა (ცვლილებების გათვალისწინებით)
-        await _parametersManager.Save(parameters, "Create New Task Finished", null, cancellationToken);
-
-        //ცვლილებების შენახვა დასრულდა
-        //Console.WriteLine("Create new Task Finished");
-
-        //მენიუს შესახებ სტატუსის დაფიქსირება
-        //ცვლილებების გამო მენიუს თავიდან ჩატვირთვა და აწყობა
-        //რადგან მენიუ თავიდან აეწყობა, საჭიროა მიეთითოს რომელ პროექტში ვიყავით, რომ ისევ იქ დავბრუნდეთ
-        //MenuState = new MenuState { RebuildMenu = true, NextMenu = new List<string> { _projectName } };
-
-        //პაუზა იმისათვის, რომ პროცესის მიმდინარეობის შესახებ წაკითხვა მოვასწროთ და მივხვდეთ, რომ პროცესი დასრულდა
-        //StShared.Pause();
+        //ახალი ამოცანის შექმნა და ჩაწერა ბაზაში
+        _crawlerRepository.CreateTask(new TaskModel { TaskName = newTaskName });
+        _crawlerRepository.SaveChanges();
 
         //ყველაფერი კარგად დასრულდა
-        return true;
+        return ValueTask.FromResult(true);
     }
 }

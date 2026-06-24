@@ -32,7 +32,6 @@ public sealed class CrawlerConsoleParameters : IParametersWithDatabaseServerConn
     public string? Alphabet { get; set; }
     public string? ExtraSymbols { get; set; }
 
-    public Dictionary<string, TaskModel> Tasks { get; set; } = [];
     public Dictionary<string, PunctuationModel> Punctuations { get; init; } = [];
     public DatabaseParameters? DatabaseParameters { get; init; }
     public Dictionary<string, ApiClientSettings> ApiClients { get; } = [];
@@ -45,50 +44,6 @@ public sealed class CrawlerConsoleParameters : IParametersWithDatabaseServerConn
 
     public Dictionary<string, FileStorageData> FileStorages { get; } = [];
     public Dictionary<string, SmartSchema> SmartSchemas { get; } = [];
-
-    public TaskModel? GetTask(string taskName)
-    {
-        return Tasks.GetValueOrDefault(taskName);
-    }
-
-    public TaskModel GetTaskRequired(string taskName)
-    {
-        return GetTask(taskName) ?? throw new InvalidOperationException($"Task with name {taskName} does not exists");
-    }
-
-    public string GetApiNameRequired(string taskName)
-    {
-        TaskModel task = GetTask(taskName) ??
-                         throw new InvalidOperationException($"Task with name {taskName} does not exists");
-        return string.IsNullOrWhiteSpace(task.ApiName)
-            ? throw new InvalidOperationException($"Server does not specified for ApiClient with name {taskName}")
-            : task.ApiName;
-    }
-
-    public bool CheckNewTaskNameValid(string oldTaskName, string newTaskName)
-    {
-        if (oldTaskName == newTaskName)
-        {
-            return true;
-        }
-
-        if (!Tasks.ContainsKey(oldTaskName))
-        {
-            return false;
-        }
-
-        return !Tasks.ContainsKey(newTaskName);
-    }
-
-    public bool RemoveTask(string taskName)
-    {
-        return Tasks.Remove(taskName);
-    }
-
-    public bool AddTask(string newTaskName, TaskModel task)
-    {
-        return Tasks.TryAdd(newTaskName, task);
-    }
 
     public string GetSegmentFinisherPunctuationsRegex()
     {

@@ -1,77 +1,59 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerConsoleData.Models;
-using ParametersManagement.LibParameters;
+using CrawlerRepoInterfaces;
 using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class NewStartPointCliMenuCommand : CliMenuCommand
 {
-    private readonly IParametersManager _parametersManager;
+    private readonly ICrawlerRepository _crawlerRepository;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public NewStartPointCliMenuCommand(IParametersManager parametersManager, string taskName) : base("New Start Point",
+    public NewStartPointCliMenuCommand(ICrawlerRepository crawlerRepository, string taskName) : base("New Start Point",
         EMenuAction.Reload)
     {
-        _parametersManager = parametersManager;
+        _crawlerRepository = crawlerRepository;
         _taskName = taskName;
     }
 
-    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
-
-        TaskModel? task = parameters.GetTask(_taskName);
-
-        if (task == null)
+        var task = _crawlerRepository.GetTaskByName(_taskName);
+        if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} not found", true);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        //ამოცანის შექმნის პროცესი დაიწყო
+        //სტარტ პოინტის შექმნის პროცესი დაიწყო
         Console.WriteLine("Create new Start Point started");
 
-        //ახალი ამოცანის სახელის შეტანა პროგრამაში
+        //ახალი სტარტ პოინტის შეტანა პროგრამაში
         string? newStartPoint = Inputer.InputText("New Start Point", null);
         if (string.IsNullOrWhiteSpace(newStartPoint))
         {
-            return false;
+            return ValueTask.FromResult(false);
         }
-        //გადავამოწმოთ ხომ არ არსებობს იგივე სახელით სხვა ამოცანა.
 
-        if (task.StartPoints.Contains(newStartPoint))
+        //გადავამოწმოთ ხომ არ არსებობს იგივე სტარტ პოინტი
+        if (_crawlerRepository.GetStartPoint(task.TaskId, newStartPoint) is not null)
         {
             StShared.WriteErrorLine(
                 $"Start Point with Name {newStartPoint} is already exists. cannot create Start Point with this name. ",
                 true);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        //ახალი ამოცანის შექმნა და ჩამატება ამოცანების სიაში
-        task.StartPoints.Add(newStartPoint);
+        //ახალი სტარტ პოინტის ჩაწერა ბაზაში
+        _crawlerRepository.AddStartPoint(task.TaskId, newStartPoint);
+        _crawlerRepository.SaveChanges();
 
-        //პარამეტრების შენახვა (ცვლილებების გათვალისწინებით)
-        await _parametersManager.Save(parameters, "Create New Task Finished", null, cancellationToken);
-
-        //ცვლილებების შენახვა დასრულდა
-        //Console.WriteLine("Create new Task Finished");
-
-        //მენიუს შესახებ სტატუსის დაფიქსირება
-        //ცვლილებების გამო მენიუს თავიდან ჩატვირთვა და აწყობა
-        //რადგან მენიუ თავიდან აეწყობა, საჭიროა მიეთითოს რომელ პროექტში ვიყავით, რომ ისევ იქ დავბრუნდეთ
-        //MenuState = new MenuState { RebuildMenu = true, NextMenu = new List<string> { _projectName } };
         MenuAction = EMenuAction.Reload;
-
-        //პაუზა იმისათვის, რომ პროცესის მიმდინარეობის შესახებ წაკითხვა მოვასწროთ და მივხვდეთ, რომ პროცესი დასრულდა
-        //StShared.Pause();
-
-        //ყველაფერი კარგად დასრულდა
-        return true;
+        return ValueTask.FromResult(true);
     }
 }

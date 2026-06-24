@@ -3,7 +3,6 @@ using System.Linq;
 using System.Net.Http;
 using AppCliTools.CliMenu;
 using CrawlerConsole.MenuCommands;
-using CrawlerConsoleData.Models;
 using CrawlerRepoInterfaces;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
@@ -19,10 +18,8 @@ public class TasksListFactoryStrategy(
 {
     public List<CliMenuCommand> CreateMenuCommandsList()
     {
-        var parameters = (CrawlerConsoleParameters)parametersManager.Parameters;
-
-        return parameters.Tasks.OrderBy(o => o.Key)
-            .Select(kvp => new TaskSubMenuCliMenuCommand(logger, httpClientFactory, parametersManager,
-                crawlerRepository, kvp.Key)).Cast<CliMenuCommand>().ToList();
+        return crawlerRepository.GetTasksList().OrderBy(o => o.TaskName)
+            .Select(task => new TaskSubMenuCliMenuCommand(logger, httpClientFactory, parametersManager,
+                crawlerRepository, task.TaskName)).Cast<CliMenuCommand>().ToList();
     }
 }

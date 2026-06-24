@@ -1,5 +1,3 @@
-﻿using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,15 +14,13 @@ namespace CrawlerConsole.ToolCommands;
 public sealed class RunTaskApiClientToolCommand : ApiClientToolCommand
 {
     public const string ActionName = "Run Task";
-    private readonly IEnumerable<string> _startPoints;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public RunTaskApiClientToolCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ApiToolCommandParameters par, IEnumerable<string> startPoints, string taskName) : base(logger,
+        ApiToolCommandParameters par, string taskName) : base(logger,
         httpClientFactory, ActionName, par, null, ActionName, true)
     {
-        _startPoints = startPoints;
         _taskName = taskName;
     }
 
@@ -49,10 +45,7 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolCommand
         }
 
         Option<Error[]> runTaskResult = await aiClient.RunTask(
-            new RunTaskRequest
-            {
-                StartPoints = _startPoints.ToList(), TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit
-            }, cancellationToken);
+            new RunTaskRequest { TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit }, cancellationToken);
 
         return runTaskResult.IsNone || ReturnFalseLogErrors((Error[])runTaskResult);
     }

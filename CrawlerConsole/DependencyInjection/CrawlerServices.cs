@@ -50,6 +50,7 @@ public static class CrawlerServices
                 .AddTransient<IMenuCommandFactoryStrategy, HostListCliMenuCommandFactoryStrategy>()
                 .AddTransient<IMenuCommandFactoryStrategy, SchemeListCliMenuCommandFactoryStrategy>()
                 .AddTransient<IMenuCommandFactoryStrategy, BatchListCliMenuCommandFactoryStrategy>()
+                .AddTransient<IMenuCommandFactoryStrategy, NewTaskCliMenuCommandFactoryStrategy>()
                 .AddTransient<IMenuCommandListFactoryStrategy, TasksListFactoryStrategy>();
             // @formatter:on
         }
@@ -64,7 +65,6 @@ public static class CrawlerServices
 
             //მენიუს სტრატეგიები, რომლებიც ბაზაზე არ არიან დამოკიდებული და ყოველთვის ხელმისაწვდომია
             .AddTransient<IMenuCommandFactoryStrategy, CrawlerParametersEditorCliMenuCommandFactoryStrategy>()
-            .AddTransient<IMenuCommandFactoryStrategy, NewTaskCliMenuCommandFactoryStrategy>()
 
             //.AddSingleton<IProcesses, Processes>()
             .AddSingleton<IMenuBuilder, CrawlerMenuBuilder>()

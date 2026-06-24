@@ -1,47 +1,43 @@
-﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerConsoleData.Models;
-using ParametersManagement.LibParameters;
+using CrawlerRepoInterfaces;
 using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class DeleteTaskCliMenuCommand : CliMenuCommand
 {
-    private readonly IParametersManager _parametersManager;
+    private readonly ICrawlerRepository _crawlerRepository;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public DeleteTaskCliMenuCommand(IParametersManager parametersManager, string taskName) : base("Delete Task",
+    public DeleteTaskCliMenuCommand(ICrawlerRepository crawlerRepository, string taskName) : base("Delete Task",
         EMenuAction.LevelUp)
     {
-        _parametersManager = parametersManager;
+        _crawlerRepository = crawlerRepository;
         _taskName = taskName;
     }
 
-    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var parameters = (CrawlerConsoleParameters)_parametersManager.Parameters;
-
-        Dictionary<string, TaskModel> tasks = parameters.Tasks;
-
-        if (!tasks.ContainsKey(_taskName))
+        var task = _crawlerRepository.GetTaskByName(_taskName);
+        if (task is null)
         {
             StShared.WriteErrorLine($"Task {_taskName} not found", true);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
         if (!Inputer.InputBool($"This will Delete  Task {_taskName}. are you sure?", false, false))
         {
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        tasks.Remove(_taskName);
-        await _parametersManager.Save(parameters, $"Task {_taskName} deleted.", null, cancellationToken);
+        //ამოცანის წაშლა ბაზიდან Start Point-ებთან ერთად (cascade)
+        _crawlerRepository.DeleteTask(task);
+        _crawlerRepository.SaveChanges();
 
-        return true;
+        return ValueTask.FromResult(true);
     }
 }

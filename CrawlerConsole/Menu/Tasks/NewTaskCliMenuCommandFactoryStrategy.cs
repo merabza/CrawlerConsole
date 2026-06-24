@@ -1,15 +1,15 @@
 using AppCliTools.CliMenu;
 using CrawlerConsole.MenuCommands;
-using ParametersManagement.LibParameters;
+using CrawlerRepoInterfaces;
 
 namespace CrawlerConsole.Menu.Tasks;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class NewTaskCliMenuCommandFactoryStrategy(IParametersManager parametersManager) : IMenuCommandFactoryStrategy
+public class NewTaskCliMenuCommandFactoryStrategy(ICrawlerRepository crawlerRepository) : IMenuCommandFactoryStrategy
 {
     public CliMenuCommand CreateMenuCommand()
     {
         //ახალი ამოცანის შექმნა
-        return new NewTaskCliMenuCommand(parametersManager);
+        return new NewTaskCliMenuCommand(crawlerRepository);
     }
 }
