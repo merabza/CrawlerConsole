@@ -6,15 +6,17 @@ using AppCliTools.CliMenu.CliMenuCommands;
 using AppCliTools.CliParameters.CliMenuCommands;
 using AppCliTools.LibDataInput;
 using CrawlerConsole.Cruders;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
+using OneOf;
 using ParametersManagement.LibParameters;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger _logger;
     private readonly IParametersManager _parametersManager;
@@ -22,13 +24,13 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public TaskSubMenuCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        IParametersManager parametersManager, ICrawlerRepository crawlerRepository, string taskName) : base(taskName,
+        IParametersManager parametersManager, CrawlerServiceApiClient apiClient, string taskName) : base(taskName,
         EMenuAction.LoadSubMenu)
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _parametersManager = parametersManager;
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
         _taskName = taskName;
     }
 
@@ -36,40 +38,40 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
     {
         var taskSubMenuSet = new CliMenuSet($" Task => {Name}");
 
-        var deleteTaskCommand = new DeleteTaskCliMenuCommand(_crawlerRepository, Name);
+        var deleteTaskCommand = new DeleteTaskCliMenuCommand(_apiClient, Name);
         taskSubMenuSet.AddMenuItem(deleteTaskCommand);
 
-        taskSubMenuSet.AddMenuItem(new EditTaskNameCliMenuCommand(_crawlerRepository, Name));
+        taskSubMenuSet.AddMenuItem(new EditTaskNameCliMenuCommand(_apiClient, Name));
 
         //პროექტის პარამეტრი
-        var taskCruder = TaskCruder.Create(_logger, _httpClientFactory, _parametersManager, _crawlerRepository);
+        var taskCruder = TaskCruder.Create(_logger, _httpClientFactory, _parametersManager, _apiClient);
         var editCommand = new EditItemAllFieldsInSequenceCliMenuCommand(taskCruder, _taskName);
         taskSubMenuSet.AddMenuItem(editCommand);
 
         taskCruder.FillDetailsSubMenu(taskSubMenuSet, _taskName);
 
-        taskSubMenuSet.AddMenuItem(new TaskCliMenuCommand(_logger, _httpClientFactory, _crawlerRepository,
-            _parametersManager, Name));
+        taskSubMenuSet.AddMenuItem(new TaskCliMenuCommand(_logger, _httpClientFactory, _apiClient, _parametersManager,
+            Name));
 
         taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
-            _crawlerRepository, Name));
+            _apiClient, Name));
 
         taskSubMenuSet.AddMenuItem(new RunBatchCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
-            _crawlerRepository, Name));
+            _apiClient, Name));
 
         taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
-            _crawlerRepository, Name));
+            _apiClient, Name));
 
-        var newStartPointCommand = new NewStartPointCliMenuCommand(_crawlerRepository, Name);
+        var newStartPointCommand = new NewStartPointCliMenuCommand(_apiClient, Name);
         taskSubMenuSet.AddMenuItem(newStartPointCommand);
 
-        var task = _crawlerRepository.GetTaskByName(Name);
+        OneOf<TaskDto?, Error[]> taskResult = _apiClient.GetTaskByName(Name).GetAwaiter().GetResult();
+        TaskDto? task = taskResult.IsT0 ? taskResult.AsT0 : null;
         if (task is not null)
         {
-            foreach (var startPoint in task.StartPoints.OrderBy(o => o.StartPoint))
+            foreach (TaskStartPointDto startPoint in task.StartPoints.OrderBy(o => o.StartPoint))
             {
-                taskSubMenuSet.AddMenuItem(new StartPointSubMenuCliMenuCommand(_crawlerRepository, Name,
-                    startPoint.StartPoint));
+                taskSubMenuSet.AddMenuItem(new StartPointSubMenuCliMenuCommand(_apiClient, Name, startPoint.StartPoint));
             }
         }
 

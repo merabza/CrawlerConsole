@@ -3,7 +3,7 @@ using AppCliTools.CliMenu;
 using AppCliTools.CliParameters.CliMenuCommands;
 using CrawlerConsole.Cruders;
 using CrawlerConsoleData.Models;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
 
@@ -14,13 +14,13 @@ public class BatchListCliMenuCommandFactoryStrategy(
     ILogger<BatchListCliMenuCommandFactoryStrategy> logger,
     IHttpClientFactory httpClientFactory,
     IParametersManager parametersManager,
-    ICrawlerRepository crawlerRepository) : IMenuCommandFactoryStrategy
+    CrawlerServiceApiClient apiClient) : IMenuCommandFactoryStrategy
 {
     public CliMenuCommand CreateMenuCommand()
     {
         var parameters = (CrawlerConsoleParameters)parametersManager.Parameters;
         //პაკეტების რედაქტორი
-        var batchCruder = new BatchCruder(logger, httpClientFactory, parameters, crawlerRepository);
+        var batchCruder = new BatchCruder(logger, httpClientFactory, parameters, apiClient);
         //"Batches"
         return new CruderListCliMenuCommand(batchCruder);
     }

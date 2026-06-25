@@ -2,42 +2,55 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using LanguageExt;
+using OneOf;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class DeleteTaskCliMenuCommand : CliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public DeleteTaskCliMenuCommand(ICrawlerRepository crawlerRepository, string taskName) : base("Delete Task",
+    public DeleteTaskCliMenuCommand(CrawlerServiceApiClient apiClient, string taskName) : base("Delete Task",
         EMenuAction.LevelUp)
     {
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
         _taskName = taskName;
     }
 
-    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var task = _crawlerRepository.GetTaskByName(_taskName);
-        if (task is null)
+        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            return false;
+        }
+
+        if (taskResult.AsT0 is null)
         {
             StShared.WriteErrorLine($"Task {_taskName} not found", true);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         if (!Inputer.InputBool($"This will Delete  Task {_taskName}. are you sure?", false, false))
         {
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         //ამოცანის წაშლა ბაზიდან Start Point-ებთან ერთად (cascade)
-        _crawlerRepository.DeleteTask(task);
-        _crawlerRepository.SaveChanges();
+        Option<Error[]> deleteResult = await _apiClient.DeleteTask(_taskName, cancellationToken);
+        if (deleteResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])deleteResult);
+            return false;
+        }
 
-        return ValueTask.FromResult(true);
+        return true;
     }
 }

@@ -6,13 +6,12 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using ParametersManagement.LibApiClientParameters;
-using ParametersManagement.LibDatabaseParameters;
 using ParametersManagement.LibFileParameters.Interfaces;
 using ParametersManagement.LibFileParameters.Models;
 
 namespace CrawlerConsoleData.Models;
 
-public sealed class CrawlerConsoleParameters : IParametersWithDatabaseServerConnections, IParametersWithApiClients,
+public sealed class CrawlerConsoleParameters : IParametersWithApiClients,
     IParametersWithSmartSchemas, IParametersWithFileStorages
 {
     private string _possibleSymbols = string.Empty;
@@ -33,9 +32,10 @@ public sealed class CrawlerConsoleParameters : IParametersWithDatabaseServerConn
     public string? ExtraSymbols { get; set; }
 
     public Dictionary<string, PunctuationModel> Punctuations { get; init; } = [];
-    public DatabaseParameters? DatabaseParameters { get; init; }
     public Dictionary<string, ApiClientSettings> ApiClients { get; } = [];
-    public Dictionary<string, DatabaseServerConnectionData> DatabaseServerConnections { get; init; } = [];
+
+    //მენეჯმენტის (CRUD) ოპერაციებისთვის გამოსაყენებელი CrawlerService-ის ApiClient-ის სახელი (ApiClients-იდან)
+    public string? ManagementApiClientName { get; set; }
 
     public bool CheckBeforeSave()
     {

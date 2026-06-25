@@ -3,25 +3,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using OneOf;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class NewTaskCliMenuCommand : CliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
 
     //ახალი აპლიკაციის ამოცანის შექმნა
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public NewTaskCliMenuCommand(ICrawlerRepository crawlerRepository) : base("New Task", EMenuAction.Reload)
+    public NewTaskCliMenuCommand(CrawlerServiceApiClient apiClient) : base("New Task", EMenuAction.Reload)
     {
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
     }
 
-    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
         //ამოცანის შექმნის პროცესი დაიწყო
         Console.WriteLine("Create new Task started");
@@ -30,22 +31,34 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
         string? newTaskName = Inputer.InputText("New Task Name", null);
         if (string.IsNullOrEmpty(newTaskName))
         {
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სახელით სხვა ამოცანა.
-        if (_crawlerRepository.GetTaskByName(newTaskName) is not null)
+        OneOf<TaskDto?, Error[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
+        if (existingResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(existingResult.AsT1);
+            return false;
+        }
+
+        if (existingResult.AsT0 is not null)
         {
             StShared.WriteErrorLine(
                 $"Task with Name {newTaskName} is already exists. cannot create task with this name. ", true);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         //ახალი ამოცანის შექმნა და ჩაწერა ბაზაში
-        _crawlerRepository.CreateTask(new TaskModel { TaskName = newTaskName });
-        _crawlerRepository.SaveChanges();
+        OneOf<TaskDto, Error[]> createResult =
+            await _apiClient.CreateTask(new TaskDto { TaskName = newTaskName }, cancellationToken);
+        if (createResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(createResult.AsT1);
+            return false;
+        }
 
         //ყველაფერი კარგად დასრულდა
-        return ValueTask.FromResult(true);
+        return true;
     }
 }

@@ -1,32 +1,38 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParameters;
 using AppCliTools.CliParameters.Cruders;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using LanguageExt;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
 public sealed class HostByBatchCruder : Cruder
 {
-    private readonly Batch _batch;
-
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
+    private readonly BatchDto _batch;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public HostByBatchCruder(ICrawlerRepository crawlerRepository, Batch batch) : base("Host Name", "Host Names")
+    public HostByBatchCruder(CrawlerServiceApiClient apiClient, BatchDto batch) : base("Host Name", "Host Names")
     {
+        _apiClient = apiClient;
         _batch = batch;
-        _crawlerRepository = crawlerRepository;
     }
 
     public List<string> GetHostNamesByBatch()
     {
-        return _crawlerRepository.GetHostStartUrlNamesByBatch(_batch);
+        return _apiClient.GetHostStartUrlNamesByBatch(_batch.BatchName).GetAwaiter().GetResult().Match(
+            names => names,
+            errors =>
+            {
+                Error.PrintErrorsOnConsole(errors);
+                return new List<string>();
+            });
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
@@ -41,36 +47,31 @@ public sealed class HostByBatchCruder : Cruder
 
     public override bool ContainsRecordWithKey(string recordKey)
     {
-        List<string> hostNames = GetHostNamesByBatch();
-        return hostNames.Contains(recordKey);
+        return GetHostNamesByBatch().Contains(recordKey);
     }
 
-    protected override ValueTask RemoveRecordWithKey(string recordKey, CancellationToken cancellationToken = default)
-    {
-        //List<string> hostNames = GetHostNamesByBatch();
-        //hostNames?.Remove(recordKey);
-        var uri = new Uri(recordKey);
-        _crawlerRepository.RemoveHostNamesByBatch(_batch, uri.Scheme, uri.Host);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
-    }
-
-    protected override ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
+    protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        //SupportToolsParameters parameters = (SupportToolsParameters)ParametersManager?.Parameters;
-        //Dictionary<string, ProjectModel> projects = parameters?.Projects;
-        //if (projects == null || !projects.ContainsKey(_projectName)) 
-        //  return;
-        //ProjectModel project = projects[_projectName];
-
-        //project.RedundantFileNames ??= new List<string>();
-        //project.RedundantFileNames.Add(recordKey);
-
         var uri = new Uri(recordKey);
-        _crawlerRepository.AddHostNamesByBatch(_batch, uri.Scheme, uri.Host);
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> removeResult =
+            await _apiClient.RemoveHostByBatch(_batch.BatchName, uri.Scheme, uri.Host, cancellationToken);
+        if (removeResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])removeResult);
+        }
+    }
+
+    protected override async ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
+        CancellationToken cancellationToken = default)
+    {
+        var uri = new Uri(recordKey);
+        Option<Error[]> addResult = await _apiClient.AddHostByBatch(
+            new HostByBatchRequest { BatchName = _batch.BatchName, SchemeName = uri.Scheme, HostName = uri.Host },
+            cancellationToken);
+        if (addResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])addResult);
+        }
     }
 }

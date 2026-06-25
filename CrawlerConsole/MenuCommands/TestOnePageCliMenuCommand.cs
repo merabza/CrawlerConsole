@@ -6,34 +6,43 @@ using AppCliTools.CliParametersApiClientsEdit.CliMenuCommands;
 using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
 using CrawlerConsole.ToolCommands;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
+using OneOf;
 using ParametersManagement.LibParameters;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class TestOnePageCliMenuCommand : ApiCliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger _logger;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public TestOnePageCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        IParametersManager parametersManager, ICrawlerRepository crawlerRepository, string taskName) : base(
+        IParametersManager parametersManager, CrawlerServiceApiClient apiClient, string taskName) : base(
         parametersManager, taskName, "Test One Page")
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
         _taskName = taskName;
     }
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var task = _crawlerRepository.GetTaskByName(_taskName);
+        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            return false;
+        }
+
+        TaskDto? task = taskResult.AsT0;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} does not exists", true);

@@ -1,85 +1,101 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
 using AppCliTools.CliParameters.FieldEditors;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using LanguageExt;
+using OneOf;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
 public sealed class SchemeCruder : Cruder
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
 
-    public SchemeCruder(ICrawlerRepository crawlerRepository) : base("Scheme", "Schemes")
+    public SchemeCruder(CrawlerServiceApiClient apiClient) : base("Scheme", "Schemes")
     {
-        _crawlerRepository = crawlerRepository;
-        FieldEditors.Add(new BoolFieldEditor(nameof(SchemeModel.SchProhibited)));
-    }
-
-    private List<SchemeModel> GetSchemes()
-    {
-        return _crawlerRepository.GetSchemesList();
+        _apiClient = apiClient;
+        FieldEditors.Add(new BoolFieldEditor(nameof(SchemeDto.SchProhibited)));
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
-        List<SchemeModel> schemesList = GetSchemes();
-        return schemesList.ToDictionary(k => k.SchName, ItemData (v) => v);
+        return _apiClient.GetSchemesList().GetAwaiter().GetResult().Match(
+            schemes => schemes.ToDictionary(k => k.SchName, ItemData (v) => v),
+            errors =>
+            {
+                Error.PrintErrorsOnConsole(errors);
+                return new Dictionary<string, ItemData>();
+            });
     }
 
     public override bool ContainsRecordWithKey(string recordKey)
     {
-        Dictionary<string, ItemData> dict = GetCrudersDictionary();
-        return dict.ContainsKey(recordKey);
+        return GetCrudersDictionary().ContainsKey(recordKey);
     }
 
-    public override ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
+    public override async ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not SchemeModel newScheme)
+        if (newRecord is not SchemeDto newScheme)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        SchemeModel scheme = _crawlerRepository.GetSchemeByName(recordKey) ?? throw new Exception("scheme is null");
+        OneOf<SchemeDto?, Error[]> schemeResult = await _apiClient.GetSchemeByName(recordKey, cancellationToken);
+        if (schemeResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(schemeResult.AsT1);
+            return;
+        }
+
+        SchemeDto? scheme = schemeResult.AsT0;
+        if (scheme is null)
+        {
+            StShared.WriteErrorLine($"scheme {recordKey} not found", true);
+            return;
+        }
 
         scheme.SchName = newScheme.SchName;
-        _crawlerRepository.UpdateScheme(scheme);
 
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> updateResult = await _apiClient.UpdateScheme(scheme, cancellationToken);
+        if (updateResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])updateResult);
+        }
     }
 
-    protected override ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
+    protected override async ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not SchemeModel newScheme)
+        if (newRecord is not SchemeDto newScheme)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        _crawlerRepository.CreateScheme(newScheme);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        OneOf<SchemeDto, Error[]> createResult = await _apiClient.CreateScheme(newScheme, cancellationToken);
+        if (createResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(createResult.AsT1);
+        }
     }
 
-    protected override ValueTask RemoveRecordWithKey(string recordKey, CancellationToken cancellationToken = default)
+    protected override async ValueTask RemoveRecordWithKey(string recordKey,
+        CancellationToken cancellationToken = default)
     {
-        SchemeModel scheme = _crawlerRepository.GetSchemeByName(recordKey) ?? throw new Exception("scheme is null");
-        _crawlerRepository.DeleteScheme(scheme);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> deleteResult = await _apiClient.DeleteScheme(recordKey, cancellationToken);
+        if (deleteResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])deleteResult);
+        }
     }
 
     protected override ItemData CreateNewItem(string? recordKey, ItemData? defaultItemData)
     {
-        return new SchemeModel { SchName = recordKey ?? string.Empty };
+        return new SchemeDto { SchName = recordKey ?? string.Empty };
     }
 }

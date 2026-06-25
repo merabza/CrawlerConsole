@@ -3,21 +3,21 @@ using System.Globalization;
 using AppCliTools.CliMenu;
 using AppCliTools.CliMenu.CliMenuCommands;
 using AppCliTools.LibDataInput;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class StartPointSubMenuCliMenuCommand : CliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
     private readonly string _startPoint;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public StartPointSubMenuCliMenuCommand(ICrawlerRepository crawlerRepository, string taskName, string startPoint) :
+    public StartPointSubMenuCliMenuCommand(CrawlerServiceApiClient apiClient, string taskName, string startPoint) :
         base(taskName, EMenuAction.LoadSubMenu)
     {
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
         _taskName = taskName;
         _startPoint = startPoint;
     }
@@ -26,10 +26,10 @@ public sealed class StartPointSubMenuCliMenuCommand : CliMenuCommand
     {
         var taskSubMenuSet = new CliMenuSet($" Task => {_taskName},  Start Point => {_startPoint}");
 
-        var deleteStartPointCommand = new DeleteStartPointCliMenuCommand(_crawlerRepository, _taskName, _startPoint);
+        var deleteStartPointCommand = new DeleteStartPointCliMenuCommand(_apiClient, _taskName, _startPoint);
         taskSubMenuSet.AddMenuItem(deleteStartPointCommand);
 
-        taskSubMenuSet.AddMenuItem(new EditStartPointCliMenuCommand(_crawlerRepository, _taskName, _startPoint));
+        taskSubMenuSet.AddMenuItem(new EditStartPointCliMenuCommand(_apiClient, _taskName, _startPoint));
 
         string key = ConsoleKey.Escape.Value().ToLower(CultureInfo.CurrentCulture);
         taskSubMenuSet.AddMenuItem(key, new ExitToMainMenuCliMenuCommand("Exit to Main menu", null), key.Length);

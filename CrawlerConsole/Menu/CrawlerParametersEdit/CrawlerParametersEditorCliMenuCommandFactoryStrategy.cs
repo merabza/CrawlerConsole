@@ -12,14 +12,13 @@ namespace CrawlerConsole.Menu.CrawlerParametersEdit;
 public class CrawlerParametersEditorCliMenuCommandFactoryStrategy(
     ILogger<CrawlerParametersEditorCliMenuCommandFactoryStrategy> logger,
     IHttpClientFactory httpClientFactory,
-    IParametersManager parametersManager,
-    IApplication application) : IMenuCommandFactoryStrategy
+    IParametersManager parametersManager) : IMenuCommandFactoryStrategy
 {
     public CliMenuCommand CreateMenuCommand()
     {
         var parameters = (CrawlerConsoleParameters)parametersManager.Parameters;
 
-        var supportToolsParametersEditor = new CrawlerConsoleParametersEditor(application, parameters,
+        var supportToolsParametersEditor = new CrawlerConsoleParametersEditor(parameters,
             parametersManager, logger, httpClientFactory);
         return new ParametersEditorListCliMenuCommand(supportToolsParametersEditor);
     }

@@ -1,49 +1,35 @@
-﻿using System.Net.Http;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using CrawlerConsoleData.Models;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class BatchTaskCliMenuCommand : CliMenuCommand
 {
-    //private readonly Batch _batch;
-    //private readonly ICrawlerRepository _crawlerRepository;
+    //private readonly BatchDto _batch;
+    //private readonly CrawlerServiceApiClient _apiClient;
     //private readonly IHttpClientFactory _httpClientFactory;
 
     //private readonly ILogger _logger;
     //private readonly CrawlerConsoleParameters _par;
 
     public BatchTaskCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ICrawlerRepository crawlerRepository, CrawlerConsoleParameters par, Batch batch) : base("Run this batch",
+        CrawlerServiceApiClient apiClient, CrawlerConsoleParameters par, BatchDto batch) : base("Run this batch",
         EMenuAction.Reload)
     {
         //_logger = logger;
         //_httpClientFactory = httpClientFactory;
         //_par = par;
         //_batch = batch;
-        //_crawlerRepository = crawlerRepository;
+        //_apiClient = apiClient;
     }
 
     protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        //var par = ParseOnePageParameters.Create(_par);
-        //if (par is null)
-        //{
-        //    StShared.WriteErrorLine("ParseOnePageParameters does not created", true);
-        //    return ValueTask.FromResult(false);
-        //}
-
-        //var crawlerRunnerToolAction = new CrawlerRunnerToolAction(_logger, _httpClientFactory,
-        //    _crawlerRepository, _par, par, Name, _batch);
-
-        //var crawlerRunner = new CrawlerRunner(crawlerRunnerToolAction, _logger);
-        //return ValueTask.FromResult(crawlerRunner.Run());
-
         return ValueTask.FromResult(false);
     }
 }

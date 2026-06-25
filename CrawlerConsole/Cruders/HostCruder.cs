@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -6,98 +5,104 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
 using AppCliTools.CliParameters.FieldEditors;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using LanguageExt;
+using OneOf;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
 public sealed class HostCruder : Cruder
 {
-    private readonly ICrawlerRepository _crawlerRepository;
-    //private readonly ICrawlerRepositoryCreatorFactory _crawlerRepositoryCreatorFactory;
+    private readonly CrawlerServiceApiClient _apiClient;
 
-    public HostCruder(ICrawlerRepository crawlerRepository) : base("Host", "Hosts")
+    public HostCruder(CrawlerServiceApiClient apiClient) : base("Host", "Hosts")
     {
-        //_crawlerRepositoryCreatorFactory = crawlerRepositoryCreatorFactory;
-        _crawlerRepository = crawlerRepository;
-        FieldEditors.Add(new TextFieldEditor(nameof(HostModel.HostName)));
-    }
-
-    //private ICrawlerRepository GetCrawlerRepository()
-    //{
-    //    return _crawlerRepositoryCreatorFactory.GetCrawlerRepository();
-    //}
-
-    private List<HostModel> GetHosts()
-    {
-        //ICrawlerRepository repo = GetCrawlerRepository();
-        return _crawlerRepository.GetHostsList();
+        _apiClient = apiClient;
+        FieldEditors.Add(new TextFieldEditor(nameof(HostDto.HostName)));
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
-        List<HostModel> hostsList = GetHosts();
-        return hostsList.ToDictionary(k => k.HostName, v => (ItemData)v);
+        return _apiClient.GetHostsList().GetAwaiter().GetResult().Match(
+            hosts => hosts.ToDictionary(k => k.HostName, ItemData (v) => v),
+            errors =>
+            {
+                Error.PrintErrorsOnConsole(errors);
+                return new Dictionary<string, ItemData>();
+            });
     }
 
     public override bool ContainsRecordWithKey(string recordKey)
     {
-        Dictionary<string, ItemData> dict = GetCrudersDictionary();
-        return dict.ContainsKey(recordKey);
+        return GetCrudersDictionary().ContainsKey(recordKey);
     }
 
-    public override ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
+    public override async ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not HostModel newHost)
+        if (newRecord is not HostDto newHost)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        //ICrawlerRepository repo = GetCrawlerRepository();
+        OneOf<HostDto?, Error[]> hostResult = await _apiClient.GetHostByName(recordKey, cancellationToken);
+        if (hostResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(hostResult.AsT1);
+            return;
+        }
 
-        HostModel host = _crawlerRepository.GetHostByName(recordKey) ?? throw new Exception("host is null");
+        HostDto? host = hostResult.AsT0;
+        if (host is null)
+        {
+            StShared.WriteErrorLine($"host {recordKey} not found", true);
+            return;
+        }
+
         host.HostName = newHost.HostName;
-        _crawlerRepository.UpdateHost(host);
 
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> updateResult = await _apiClient.UpdateHost(host, cancellationToken);
+        if (updateResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])updateResult);
+        }
     }
 
-    protected override ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
+    protected override async ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not HostModel newHost)
+        if (newRecord is not HostDto newHost)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        //ICrawlerRepository repo = GetCrawlerRepository();
-        _crawlerRepository.CreateHost(newHost);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        OneOf<HostDto, Error[]> createResult = await _apiClient.CreateHost(newHost, cancellationToken);
+        if (createResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(createResult.AsT1);
+        }
     }
 
-    protected override ValueTask RemoveRecordWithKey(string recordKey, CancellationToken cancellationToken = default)
+    protected override async ValueTask RemoveRecordWithKey(string recordKey,
+        CancellationToken cancellationToken = default)
     {
-        //ICrawlerRepository repo = GetCrawlerRepository();
-        HostModel host = _crawlerRepository.GetHostByName(recordKey) ?? throw new Exception("host is null");
-        _crawlerRepository.DeleteHost(host);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> deleteResult = await _apiClient.DeleteHost(recordKey, cancellationToken);
+        if (deleteResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])deleteResult);
+        }
     }
 
     protected override ItemData CreateNewItem(string? recordKey, ItemData? defaultItemData)
     {
-        return new HostModel { HostName = string.Empty };
+        return new HostDto { HostName = string.Empty };
     }
 
     public override bool CheckValidation(ItemData item)
     {
-        if (item is not HostModel newHost)
+        if (item is not HostDto newHost)
         {
             StShared.WriteErrorLine("Invalid Host Data", true);
             return false;

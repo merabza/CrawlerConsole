@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -6,35 +5,43 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
 using AppCliTools.CliParametersApiClientsEdit.FieldEditors;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using LanguageExt;
 using Microsoft.Extensions.Logging;
+using OneOf;
 using ParametersManagement.LibParameters;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
 public sealed class TaskCruder : Cruder
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
 
     public TaskCruder(ILogger logger, IHttpClientFactory httpClientFactory, IParametersManager parametersManager,
-        ICrawlerRepository crawlerRepository) : base("Task", "Tasks")
+        CrawlerServiceApiClient apiClient) : base("Task", "Tasks")
     {
-        _crawlerRepository = crawlerRepository;
-        FieldEditors.Add(new ApiClientNameFieldEditor(nameof(TaskModel.ApiName), logger, httpClientFactory,
+        _apiClient = apiClient;
+        FieldEditors.Add(new ApiClientNameFieldEditor(nameof(TaskDto.ApiName), logger, httpClientFactory,
             parametersManager));
     }
 
     public static TaskCruder Create(ILogger logger, IHttpClientFactory httpClientFactory,
-        IParametersManager parametersManager, ICrawlerRepository crawlerRepository)
+        IParametersManager parametersManager, CrawlerServiceApiClient apiClient)
     {
-        return new TaskCruder(logger, httpClientFactory, parametersManager, crawlerRepository);
+        return new TaskCruder(logger, httpClientFactory, parametersManager, apiClient);
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
-        return _crawlerRepository.GetTasksList().ToDictionary(k => k.TaskName, ItemData (v) => v);
+        return _apiClient.GetTasksList().GetAwaiter().GetResult().Match(
+            tasks => tasks.ToDictionary(k => k.TaskName, ItemData (v) => v),
+            errors =>
+            {
+                Error.PrintErrorsOnConsole(errors);
+                return new Dictionary<string, ItemData>();
+            });
     }
 
     public override bool ContainsRecordWithKey(string recordKey)
@@ -42,56 +49,73 @@ public sealed class TaskCruder : Cruder
         return GetCrudersDictionary().ContainsKey(recordKey);
     }
 
-    public override ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
+    public override async ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not TaskModel newTask)
+        if (newRecord is not TaskDto newTask)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        TaskModel task = _crawlerRepository.GetTaskByName(recordKey) ?? throw new Exception("task is null");
+        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(recordKey, cancellationToken);
+        if (taskResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            return;
+        }
+
+        TaskDto? task = taskResult.AsT0;
+        if (task is null)
+        {
+            StShared.WriteErrorLine($"task {recordKey} not found", true);
+            return;
+        }
 
         task.TaskName = newTask.TaskName;
         task.ApiName = newTask.ApiName;
-        _crawlerRepository.UpdateTask(task);
 
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
+        if (updateResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])updateResult);
+        }
     }
 
-    protected override ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
+    protected override async ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not TaskModel newTask)
+        if (newRecord is not TaskDto newTask)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         //ახალი ჩანაწერი იქმნება სუფთა ობიექტებით, რომ rename-ის დროს (Remove + Add) Start Point-ები შენარჩუნდეს
-        var task = new TaskModel
+        var task = new TaskDto
         {
             TaskName = recordKey,
             ApiName = newTask.ApiName,
-            StartPoints = newTask.StartPoints.Select(sp => new TaskStartPoint { StartPoint = sp.StartPoint }).ToList()
+            StartPoints = newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint }).ToList()
         };
-        _crawlerRepository.CreateTask(task);
 
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        OneOf<TaskDto, Error[]> createResult = await _apiClient.CreateTask(task, cancellationToken);
+        if (createResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(createResult.AsT1);
+        }
     }
 
-    protected override ValueTask RemoveRecordWithKey(string recordKey, CancellationToken cancellationToken = default)
+    protected override async ValueTask RemoveRecordWithKey(string recordKey,
+        CancellationToken cancellationToken = default)
     {
-        TaskModel task = _crawlerRepository.GetTaskByName(recordKey) ?? throw new Exception("task is null");
-        _crawlerRepository.DeleteTask(task);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> deleteResult = await _apiClient.DeleteTask(recordKey, cancellationToken);
+        if (deleteResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])deleteResult);
+        }
     }
 
     protected override ItemData CreateNewItem(string? recordKey, ItemData? defaultItemData)
     {
-        return new TaskModel { TaskName = recordKey ?? string.Empty };
+        return new TaskDto { TaskName = recordKey ?? string.Empty };
     }
 }

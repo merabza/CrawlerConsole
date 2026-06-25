@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -10,120 +9,126 @@ using AppCliTools.CliParameters.Cruders;
 using AppCliTools.CliParameters.FieldEditors;
 using CrawlerConsole.MenuCommands;
 using CrawlerConsoleData.Models;
-using CrawlerDbModels;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using LanguageExt;
 using Microsoft.Extensions.Logging;
+using OneOf;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
 public sealed class BatchCruder : Cruder
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger _logger;
     private readonly CrawlerConsoleParameters _par;
 
     public BatchCruder(ILogger logger, IHttpClientFactory httpClientFactory, CrawlerConsoleParameters par,
-        ICrawlerRepository crawlerRepository) : base("Batch", "Batches")
+        CrawlerServiceApiClient apiClient) : base("Batch", "Batches")
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _par = par;
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
 
-        FieldEditors.Add(new BoolFieldEditor(nameof(Batch.IsOpen)));
-        FieldEditors.Add(new BoolFieldEditor(nameof(Batch.AutoCreateNextPart)));
+        FieldEditors.Add(new BoolFieldEditor(nameof(BatchDto.IsOpen)));
+        FieldEditors.Add(new BoolFieldEditor(nameof(BatchDto.AutoCreateNextPart)));
     }
 
-    //private ICrawlerRepository GetCrawlerRepository()
-    //{
-    //    return _crawlerRepositoryCreatorFactory.GetCrawlerRepository();
-    //}
-
-    private List<Batch> GetBatches()
+    private List<BatchDto> GetBatches()
     {
-        //ICrawlerRepository repo = GetCrawlerRepository();
-        return _crawlerRepository.GetBatchesList();
+        return _apiClient.GetBatchesList().GetAwaiter().GetResult().Match(
+            batches => batches,
+            errors =>
+            {
+                Error.PrintErrorsOnConsole(errors);
+                return new List<BatchDto>();
+            });
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
-        List<Batch> batchesList = GetBatches();
-        return batchesList.ToDictionary(k => k.BatchName, ItemData (v) => v);
+        return GetBatches().ToDictionary(k => k.BatchName, ItemData (v) => v);
     }
 
     public override bool ContainsRecordWithKey(string recordKey)
     {
-        Dictionary<string, ItemData> dict = GetCrudersDictionary();
-        return dict.ContainsKey(recordKey);
+        return GetCrudersDictionary().ContainsKey(recordKey);
     }
 
-    public override ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
+    public override async ValueTask UpdateRecordWithKey(string recordKey, ItemData newRecord,
         CancellationToken cancellationToken = default)
     {
-        if (newRecord is not Batch newBatch)
+        if (newRecord is not BatchDto newBatch)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        //ICrawlerRepository repo = GetCrawlerRepository();
-
-        Batch batch = _crawlerRepository.GetBatchByName(recordKey) ?? throw new Exception("batch is null");
-        batch.BatchName = newBatch.BatchName;
-        _crawlerRepository.UpdateBatch(batch);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
-    }
-
-    protected override ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
-        CancellationToken cancellationToken = default)
-    {
-        if (newRecord is not Batch newBatch)
+        OneOf<BatchDto?, Error[]> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
+        if (batchResult.IsT1)
         {
-            return ValueTask.CompletedTask;
+            Error.PrintErrorsOnConsole(batchResult.AsT1);
+            return;
         }
 
-        //ICrawlerRepository repo = GetCrawlerRepository();
-        _crawlerRepository.CreateBatch(newBatch);
-
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
-    }
-
-    protected override ValueTask RemoveRecordWithKey(string recordKey, CancellationToken cancellationToken = default)
-    {
-        //ICrawlerRepository repo = GetCrawlerRepository();
-        Batch? batch = _crawlerRepository.GetBatchByName(recordKey);
+        BatchDto? batch = batchResult.AsT0;
         if (batch is null)
         {
-            return ValueTask.CompletedTask;
+            StShared.WriteErrorLine($"batch {recordKey} not found", true);
+            return;
         }
 
-        _crawlerRepository.DeleteBatch(batch);
+        batch.BatchName = newBatch.BatchName;
 
-        _crawlerRepository.SaveChanges();
-        return ValueTask.CompletedTask;
+        Option<Error[]> updateResult = await _apiClient.UpdateBatch(batch, cancellationToken);
+        if (updateResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])updateResult);
+        }
+    }
+
+    protected override async ValueTask AddRecordWithKey(string recordKey, ItemData newRecord,
+        CancellationToken cancellationToken = default)
+    {
+        if (newRecord is not BatchDto newBatch)
+        {
+            return;
+        }
+
+        OneOf<BatchDto, Error[]> createResult = await _apiClient.CreateBatch(newBatch, cancellationToken);
+        if (createResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(createResult.AsT1);
+        }
+    }
+
+    protected override async ValueTask RemoveRecordWithKey(string recordKey,
+        CancellationToken cancellationToken = default)
+    {
+        Option<Error[]> deleteResult = await _apiClient.DeleteBatch(recordKey, cancellationToken);
+        if (deleteResult.IsSome)
+        {
+            Error.PrintErrorsOnConsole((Error[])deleteResult);
+        }
     }
 
     protected override ItemData CreateNewItem(string? recordKey, ItemData? defaultItemData)
     {
-        return new Batch { BatchName = recordKey ?? string.Empty };
+        return new BatchDto { BatchName = recordKey ?? string.Empty };
     }
 
     public override void FillDetailsSubMenu(CliMenuSet itemSubMenuSet, string itemName)
     {
         base.FillDetailsSubMenu(itemSubMenuSet, itemName);
 
-        List<Batch> batchesList = GetBatches();
-        Dictionary<string, Batch> batches = batchesList.ToDictionary(k => k.BatchName, v => v);
-        Batch batch = batches[itemName];
+        Dictionary<string, BatchDto> batches = GetBatches().ToDictionary(k => k.BatchName, v => v);
+        BatchDto batch = batches[itemName];
 
-        itemSubMenuSet.AddMenuItem(new BatchTaskCliMenuCommand(_logger, _httpClientFactory, _crawlerRepository, _par,
-            batch));
+        itemSubMenuSet.AddMenuItem(new BatchTaskCliMenuCommand(_logger, _httpClientFactory, _apiClient, _par, batch));
 
-        var detailsCruder = new HostByBatchCruder(_crawlerRepository, batch);
+        var detailsCruder = new HostByBatchCruder(_apiClient, batch);
         var newItemCommand = new NewItemCliMenuCommand(detailsCruder, itemName, $"Create New {detailsCruder.CrudName}");
         itemSubMenuSet.AddMenuItem(newItemCommand);
 

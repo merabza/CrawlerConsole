@@ -1,5 +1,5 @@
-﻿using AppCliTools.CliMenu;
-using AppCliTools.CliParametersDataEdit;
+using System.Net.Http;
+using AppCliTools.CliMenu;
 using AppCliTools.CliTools.Services.MenuBuilder;
 using CrawlerConsole.Menu.Batches;
 using CrawlerConsole.Menu.CrawlerParametersEdit;
@@ -7,12 +7,9 @@ using CrawlerConsole.Menu.Hosts;
 using CrawlerConsole.Menu.Schemes;
 using CrawlerConsole.Menu.Tasks;
 using CrawlerConsoleData.Models;
-using CrawlerDbPersistence;
-using CrawlerRepoInterfaces;
-using CrawlerRepositories;
+using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
-using ParametersManagement.LibDatabaseParameters;
+using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
 using ParametersManagement.LibParameters.DependencyInjection;
 using Serilog.Events;
@@ -28,25 +25,18 @@ public static class CrawlerServices
     public static IServiceCollection AddServices(this IServiceCollection services, string appName,
         CrawlerConsoleParameters par, string parametersFileName)
     {
-        var databaseServerConnections = new DatabaseServerConnections(par.DatabaseServerConnections);
-
-        (EDatabaseProvider? dataProvider, string? connectionString, int commandTimeout) =
-            DbConnectionFactory.GetDataProviderConnectionStringCommandTimeOut(par.DatabaseParameters,
-                databaseServerConnections);
-
-        //მონაცემთა ბაზასთან დაკავშირებული სერვისები ემატება მხოლოდ მაშინ, თუ connectionString არსებობს
-        //და ბაზასთან დაკავშირება შესაძლებელია. წინააღმდეგ შემთხვევაში პროგრამა მაინც უნდა გაეშვას,
-        //რომ მომხმარებელმა შეძლოს ბაზასთან დასაკავშირებელი პარამეტრების შეყვანა.
-        if (!string.IsNullOrEmpty(connectionString) && DatabaseConnectionChecker.CheckConnection(par.DatabaseParameters,
-                databaseServerConnections, appName, NullLogger.Instance))
+        //მენეჯმენტის (CRUD) ოპერაციებზე დამოკიდებული სერვისები ემატება მხოლოდ მაშინ, თუ მითითებულია
+        //მენეჯმენტის ApiClient-ი (Server). წინააღმდეგ შემთხვევაში პროგრამა მაინც უნდა გაეშვას,
+        //რომ მომხმარებელმა შეძლოს შესაბამისი პარამეტრების შეყვანა.
+        if (ManagementApiClientResolver.TryResolve(par, out string server, out string? apiKey))
         {
             // @formatter:off
             services
-                .AddContextByProvider<CrawlerDbContext>(dataProvider, connectionString, commandTimeout)
-                .AddSingleton<ICrawlerRepositoryCreatorFactory, CrawlerRepositoryCreatorFactory>()
-                .AddScoped<ICrawlerRepository, CrawlerRepository>()
+                .AddScoped(sp => new CrawlerServiceApiClient(
+                    sp.GetRequiredService<ILogger<CrawlerServiceApiClient>>(),
+                    sp.GetRequiredService<IHttpClientFactory>(), server, apiKey, true))
 
-                //მენიუს სტრატეგიები, რომლებიც მონაცემთა ბაზას იყენებენ
+                //მენიუს სტრატეგიები, რომლებიც მონაცემთა ბაზას CrawlerService-ის გავლით იყენებენ
                 .AddTransient<IMenuCommandFactoryStrategy, HostListCliMenuCommandFactoryStrategy>()
                 .AddTransient<IMenuCommandFactoryStrategy, SchemeListCliMenuCommandFactoryStrategy>()
                 .AddTransient<IMenuCommandFactoryStrategy, BatchListCliMenuCommandFactoryStrategy>()
@@ -60,20 +50,10 @@ public static class CrawlerServices
             .AddSerilogLoggerService(LogEventLevel.Information, appName, par.LogFolder)
             .AddHttpClient()
 
-            //.AddMemoryCache()
-            //.AddSingleton<MenuParameters>()
-
-            //მენიუს სტრატეგიები, რომლებიც ბაზაზე არ არიან დამოკიდებული და ყოველთვის ხელმისაწვდომია
+            //მენიუს სტრატეგიები, რომლებიც სერვისზე არ არიან დამოკიდებული და ყოველთვის ხელმისაწვდომია
             .AddTransient<IMenuCommandFactoryStrategy, CrawlerParametersEditorCliMenuCommandFactoryStrategy>()
 
-            //.AddSingleton<IProcesses, Processes>()
             .AddSingleton<IMenuBuilder, CrawlerMenuBuilder>()
-            //.AddTransientAllStrategies<IToolCommandFactoryStrategy>(
-            //    typeof(CorrectNewDatabaseToolCommandFactoryStrategy).Assembly,
-            //    typeof(JetBrainsCleanupCodeRunnerToolCommandFactoryStrategy).Assembly,
-            //    typeof(JsonFromProjectDbProjectGetterFactoryStrategy).Assembly,
-            //    typeof(GenerateApiRoutesToolCommandFactoryStrategy).Assembly,
-            //    typeof(ApplicationSettingsEncoderToolCommandFactoryStrategy).Assembly)
             .AddApplication(x =>
             {
                 x.AppName = appName;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AppCliTools.CliMenu;
@@ -9,18 +9,12 @@ using CrawlerConsole.Menu.Hosts;
 using CrawlerConsole.Menu.Schemes;
 using CrawlerConsole.Menu.Tasks;
 using CrawlerConsoleData.Models;
-using Microsoft.Extensions.Logging;
-using ParametersManagement.LibDatabaseParameters;
 using ParametersManagement.LibParameters;
-using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole;
 
-public sealed class CrawlerMenuBuilder(
-    IServiceProvider serviceProvider,
-    IParametersManager parametersManager,
-    ILogger<CrawlerMenuBuilder> logger,
-    IApplication application) : IMenuBuilder
+public sealed class CrawlerMenuBuilder(IServiceProvider serviceProvider, IParametersManager parametersManager)
+    : IMenuBuilder
 {
     public CliMenuSet BuildMainMenu()
     {
@@ -45,12 +39,10 @@ public sealed class CrawlerMenuBuilder(
 
     private bool CheckConnection()
     {
-        Console.WriteLine("Checking connection to database...");
+        Console.WriteLine("Checking management service configuration...");
 
         var parameters = (CrawlerConsoleParameters)parametersManager.Parameters;
-        var databaseServerConnections = new DatabaseServerConnections(parameters.DatabaseServerConnections);
 
-        return DatabaseConnectionChecker.CheckConnection(parameters.DatabaseParameters, databaseServerConnections,
-            application.AppName, logger);
+        return ManagementApiClientResolver.TryResolve(parameters, out _, out _);
     }
 }

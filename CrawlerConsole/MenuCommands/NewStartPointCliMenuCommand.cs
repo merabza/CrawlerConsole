@@ -3,31 +3,40 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
-using CrawlerRepoInterfaces;
+using CrawlerServiceShared.Contracts;
+using OneOf;
 using SystemTools.SystemToolsShared;
+using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
 public sealed class NewStartPointCliMenuCommand : CliMenuCommand
 {
-    private readonly ICrawlerRepository _crawlerRepository;
+    private readonly CrawlerServiceApiClient _apiClient;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public NewStartPointCliMenuCommand(ICrawlerRepository crawlerRepository, string taskName) : base("New Start Point",
+    public NewStartPointCliMenuCommand(CrawlerServiceApiClient apiClient, string taskName) : base("New Start Point",
         EMenuAction.Reload)
     {
-        _crawlerRepository = crawlerRepository;
+        _apiClient = apiClient;
         _taskName = taskName;
     }
 
-    protected override ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
+    protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        var task = _crawlerRepository.GetTaskByName(_taskName);
+        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            return false;
+        }
+
+        TaskDto? task = taskResult.AsT0;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} not found", true);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         //სტარტ პოინტის შექმნის პროცესი დაიწყო
@@ -37,23 +46,36 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
         string? newStartPoint = Inputer.InputText("New Start Point", null);
         if (string.IsNullOrWhiteSpace(newStartPoint))
         {
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სტარტ პოინტი
-        if (_crawlerRepository.GetStartPoint(task.TaskId, newStartPoint) is not null)
+        OneOf<TaskStartPointDto?, Error[]> existingResult =
+            await _apiClient.GetStartPoint(task.TaskId, newStartPoint, cancellationToken);
+        if (existingResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(existingResult.AsT1);
+            return false;
+        }
+
+        if (existingResult.AsT0 is not null)
         {
             StShared.WriteErrorLine(
                 $"Start Point with Name {newStartPoint} is already exists. cannot create Start Point with this name. ",
                 true);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         //ახალი სტარტ პოინტის ჩაწერა ბაზაში
-        _crawlerRepository.AddStartPoint(task.TaskId, newStartPoint);
-        _crawlerRepository.SaveChanges();
+        OneOf<TaskStartPointDto, Error[]> addResult = await _apiClient.AddStartPoint(
+            new AddStartPointRequest { TaskId = task.TaskId, StartPoint = newStartPoint }, cancellationToken);
+        if (addResult.IsT1)
+        {
+            Error.PrintErrorsOnConsole(addResult.AsT1);
+            return false;
+        }
 
         MenuAction = EMenuAction.Reload;
-        return ValueTask.FromResult(true);
+        return true;
     }
 }

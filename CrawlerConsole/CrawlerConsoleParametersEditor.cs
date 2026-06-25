@@ -2,6 +2,7 @@
 using AppCliTools.CliParameters;
 using AppCliTools.CliParameters.FieldEditors;
 using AppCliTools.CliParametersApiClientsEdit;
+using AppCliTools.CliParametersApiClientsEdit.FieldEditors;
 using AppCliTools.CliParametersDataEdit.Cruders;
 using AppCliTools.CliParametersDataEdit.FieldEditors;
 using AppCliTools.CliParametersEdit.Cruders;
@@ -9,7 +10,6 @@ using CrawlerConsole.Cruders;
 using CrawlerConsoleData.Models;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibApiClientParameters;
-using ParametersManagement.LibDatabaseParameters;
 using ParametersManagement.LibFileParameters.Models;
 using ParametersManagement.LibParameters;
 using SystemTools.SystemToolsShared;
@@ -18,7 +18,7 @@ namespace CrawlerConsole;
 
 public sealed class CrawlerConsoleParametersEditor : ParametersEditor
 {
-    public CrawlerConsoleParametersEditor(IApplication application, IParameters parameters,
+    public CrawlerConsoleParametersEditor(IParameters parameters,
         IParametersManager parametersManager, ILogger logger, IHttpClientFactory httpClientFactory) : base(
         "CrawlerConsole Parameters Editor", parameters, parametersManager)
     {
@@ -33,13 +33,6 @@ public sealed class CrawlerConsoleParametersEditor : ParametersEditor
         FieldEditors.Add(new DictionaryFieldEditor<PunctuationCruder, PunctuationModel>(
             nameof(CrawlerConsoleParameters.Punctuations), x => new PunctuationCruder(logger, parametersManager, x)));
 
-        FieldEditors.Add(new DictionaryFieldEditor<DatabaseServerConnectionCruder, DatabaseServerConnectionData>(
-            nameof(CrawlerConsoleParameters.DatabaseServerConnections),
-            x => new DatabaseServerConnectionCruder(application, logger, httpClientFactory, parametersManager, x)));
-
-        FieldEditors.Add(new DatabaseParametersFieldEditor(application, logger, httpClientFactory,
-            nameof(CrawlerConsoleParameters.DatabaseParameters), parametersManager));
-
         FieldEditors.Add(new DictionaryFieldEditor<SmartSchemaCruder, SmartSchema>(
             nameof(CrawlerConsoleParameters.SmartSchemas), x => new SmartSchemaCruder(parametersManager, x)));
 
@@ -49,5 +42,9 @@ public sealed class CrawlerConsoleParametersEditor : ParametersEditor
         FieldEditors.Add(new DictionaryFieldEditor<ApiClientCruder, ApiClientSettings>(
             nameof(CrawlerConsoleParameters.ApiClients),
             x => new ApiClientCruder(logger, httpClientFactory, parametersManager, x)));
+
+        //მენეჯმენტის (CRUD) ოპერაციებისთვის გამოსაყენებელი CrawlerService-ის ApiClient-ის არჩევა
+        FieldEditors.Add(new ApiClientNameFieldEditor(nameof(CrawlerConsoleParameters.ManagementApiClientName), logger,
+            httpClientFactory, parametersManager, true));
     }
 }
