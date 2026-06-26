@@ -1,8 +1,6 @@
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParametersApiClientsEdit.CliMenuCommands;
-using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
 using CrawlerConsole.ToolCommands;
 using CrawlerServiceShared.Contracts;
@@ -17,17 +15,17 @@ namespace CrawlerConsole.MenuCommands;
 public sealed class RunBatchCliMenuCommand : ApiCliMenuCommand
 {
     private readonly CrawlerServiceApiClient _apiClient;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly CrawlerServiceApiClient _crawlerServiceApiClient;
     private readonly ILogger _logger;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public RunBatchCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
+    public RunBatchCliMenuCommand(ILogger logger, CrawlerServiceApiClient crawlerServiceApiClient,
         IParametersManager parametersManager, CrawlerServiceApiClient apiClient, string taskName) : base(
         parametersManager, taskName, "Run Batch")
     {
         _logger = logger;
-        _httpClientFactory = httpClientFactory;
+        _crawlerServiceApiClient = crawlerServiceApiClient;
         _apiClient = apiClient;
         _taskName = taskName;
     }
@@ -48,17 +46,17 @@ public sealed class RunBatchCliMenuCommand : ApiCliMenuCommand
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(task.ApiName))
-        {
-            StShared.WriteErrorLine($"Server does not specified for task {_taskName}", true);
-            return false;
-        }
+        //if (string.IsNullOrWhiteSpace(task.ApiName))
+        //{
+        //    StShared.WriteErrorLine($"Server does not specified for task {_taskName}", true);
+        //    return false;
+        //}
 
-        ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(task.ApiName);
-        if (apiToolCommandParameters is null)
-        {
-            return false;
-        }
+        //ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(task.ApiName);
+        //if (apiToolCommandParameters is null)
+        //{
+        //    return false;
+        //}
 
         string? batchName = Inputer.InputText("Batch Name", null);
         if (string.IsNullOrWhiteSpace(batchName))
@@ -67,8 +65,7 @@ public sealed class RunBatchCliMenuCommand : ApiCliMenuCommand
             return false;
         }
 
-        var crawlerRunnerToolAction = new RunBatchApiClientToolCommand(_logger, _httpClientFactory,
-            apiToolCommandParameters, batchName);
+        var crawlerRunnerToolAction = new RunBatchApiClientToolCommand(_logger, _crawlerServiceApiClient, batchName);
 
         return await crawlerRunnerToolAction.Run(cancellationToken);
     }

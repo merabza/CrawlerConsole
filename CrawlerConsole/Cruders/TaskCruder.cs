@@ -1,15 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
-using AppCliTools.CliParametersApiClientsEdit.FieldEditors;
 using CrawlerServiceShared.Contracts;
 using LanguageExt;
-using Microsoft.Extensions.Logging;
 using OneOf;
-using ParametersManagement.LibParameters;
 using SystemTools.SystemToolsShared;
 using SystemTools.SystemToolsShared.Errors;
 
@@ -19,25 +15,20 @@ public sealed class TaskCruder : Cruder
 {
     private readonly CrawlerServiceApiClient _apiClient;
 
-    public TaskCruder(ILogger logger, IHttpClientFactory httpClientFactory, IParametersManager parametersManager,
-        CrawlerServiceApiClient apiClient) : base("Task", "Tasks")
+    private TaskCruder(CrawlerServiceApiClient apiClient) : base("Task", "Tasks")
     {
         _apiClient = apiClient;
-        FieldEditors.Add(new ApiClientNameFieldEditor(nameof(TaskDto.ApiName), logger, httpClientFactory,
-            parametersManager));
     }
 
-    public static TaskCruder Create(ILogger logger, IHttpClientFactory httpClientFactory,
-        IParametersManager parametersManager, CrawlerServiceApiClient apiClient)
+    public static TaskCruder Create(CrawlerServiceApiClient apiClient)
     {
-        return new TaskCruder(logger, httpClientFactory, parametersManager, apiClient);
+        return new TaskCruder(apiClient);
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
         return _apiClient.GetTasksList().GetAwaiter().GetResult().Match(
-            tasks => tasks.ToDictionary(k => k.TaskName, ItemData (v) => v),
-            errors =>
+            tasks => tasks.ToDictionary(k => k.TaskName, ItemData (v) => v), errors =>
             {
                 Error.PrintErrorsOnConsole(errors);
                 return new Dictionary<string, ItemData>();
@@ -72,7 +63,6 @@ public sealed class TaskCruder : Cruder
         }
 
         task.TaskName = newTask.TaskName;
-        task.ApiName = newTask.ApiName;
 
         Option<Error[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
         if (updateResult.IsSome)
@@ -93,8 +83,8 @@ public sealed class TaskCruder : Cruder
         var task = new TaskDto
         {
             TaskName = recordKey,
-            ApiName = newTask.ApiName,
-            StartPoints = newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint }).ToList()
+            StartPoints = newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint })
+                .ToList()
         };
 
         OneOf<TaskDto, Error[]> createResult = await _apiClient.CreateTask(task, cancellationToken);

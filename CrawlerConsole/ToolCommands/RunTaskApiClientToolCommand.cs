@@ -1,7 +1,5 @@
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
 using LanguageExt;
@@ -11,26 +9,25 @@ using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.ToolCommands;
 
-public sealed class RunTaskApiClientToolCommand : ApiClientToolCommand
+public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
 {
     public const string ActionName = "Run Task";
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public RunTaskApiClientToolCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ApiToolCommandParameters par, string taskName) : base(logger,
-        httpClientFactory, ActionName, par, null, ActionName, true)
+    public RunTaskApiClientToolCommand(ILogger logger, CrawlerServiceApiClient crawlerServiceApiClient, string taskName)
+        : base(logger, ActionName, crawlerServiceApiClient)
     {
         _taskName = taskName;
     }
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        CrawlerServiceApiClient aiClient = CreateCrawlerServiceApiClient();
+        //CrawlerServiceApiClient aiClient = CreateCrawlerServiceApiClient();
 
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხი ენდპოინტს პარამეტრად გადაეცემა
         OneOf<CrawlerPreCheckResult, Error[]> preCheckResult =
-            await aiClient.PreCheck(_taskName, null, cancellationToken);
+            await CrawlerServiceApiClient.PreCheck(_taskName, null, cancellationToken);
         if (preCheckResult.IsT1)
         {
             return ReturnFalseLogErrors(preCheckResult.AsT1);
@@ -44,7 +41,7 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolCommand
                 -1);
         }
 
-        Option<Error[]> runTaskResult = await aiClient.RunTask(
+        Option<Error[]> runTaskResult = await CrawlerServiceApiClient.RunTask(
             new RunTaskRequest { TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit }, cancellationToken);
 
         return runTaskResult.IsNone || ReturnFalseLogErrors((Error[])runTaskResult);

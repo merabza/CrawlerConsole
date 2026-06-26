@@ -1,8 +1,6 @@
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParametersApiClientsEdit.CliMenuCommands;
-using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using CrawlerConsole.ToolCommands;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
@@ -16,17 +14,17 @@ namespace CrawlerConsole.MenuCommands;
 public sealed class RunTaskCliMenuCommand : ApiCliMenuCommand
 {
     private readonly CrawlerServiceApiClient _apiClient;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly CrawlerServiceApiClient _crawlerServiceApiClient;
     private readonly ILogger _logger;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public RunTaskCliMenuCommand(ILogger logger, IHttpClientFactory httpClientFactory,
+    public RunTaskCliMenuCommand(ILogger logger, CrawlerServiceApiClient crawlerServiceApiClient,
         IParametersManager parametersManager, CrawlerServiceApiClient apiClient, string taskName) : base(
         parametersManager, taskName, "Run Task")
     {
         _logger = logger;
-        _httpClientFactory = httpClientFactory;
+        _crawlerServiceApiClient = crawlerServiceApiClient;
         _apiClient = apiClient;
         _taskName = taskName;
     }
@@ -47,21 +45,20 @@ public sealed class RunTaskCliMenuCommand : ApiCliMenuCommand
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(task.ApiName))
-        {
-            StShared.WriteErrorLine($"Server does not specified for task {_taskName}", true);
-            return false;
-        }
+        //if (string.IsNullOrWhiteSpace(task.ApiName))
+        //{
+        //    StShared.WriteErrorLine($"Server does not specified for task {_taskName}", true);
+        //    return false;
+        //}
 
-        ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(task.ApiName);
-        if (apiToolCommandParameters is null)
-        {
-            return false;
-        }
+        //ApiToolCommandParameters? apiToolCommandParameters = CreateApiParameters(task.ApiName);
+        //if (apiToolCommandParameters is null)
+        //{
+        //    return false;
+        //}
 
         //StartPoints-ებს სერვისი თვითონ აიღებს ბაზიდან task name-ით
-        var crawlerRunnerToolAction = new RunTaskApiClientToolCommand(_logger, _httpClientFactory,
-            apiToolCommandParameters, _taskName);
+        var crawlerRunnerToolAction = new RunTaskApiClientToolCommand(_logger, _crawlerServiceApiClient, _taskName);
 
         return await crawlerRunnerToolAction.Run(cancellationToken);
     }

@@ -1,7 +1,5 @@
-﻿using System.Net.Http;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
 using LanguageExt;
@@ -11,26 +9,23 @@ using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.ToolCommands;
 
-public sealed class RunBatchApiClientToolCommand : ApiClientToolCommand
+public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
 {
     public const string ActionName = "Run Batch";
     private readonly string _batchName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public RunBatchApiClientToolCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ApiToolCommandParameters par, string batchName) : base(logger, httpClientFactory, ActionName, par, null,
-        ActionName, true)
+    public RunBatchApiClientToolCommand(ILogger logger, CrawlerServiceApiClient crawlerServiceApiClient,
+        string batchName) : base(logger, ActionName, crawlerServiceApiClient)
     {
         _batchName = batchName;
     }
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        CrawlerServiceApiClient aiClient = CreateCrawlerServiceApiClient();
-
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხი ენდპოინტს პარამეტრად გადაეცემა
         OneOf<CrawlerPreCheckResult, Error[]> preCheckResult =
-            await aiClient.PreCheck(_batchName, null, cancellationToken);
+            await CrawlerServiceApiClient.PreCheck(_batchName, null, cancellationToken);
         if (preCheckResult.IsT1)
         {
             return ReturnFalseLogErrors(preCheckResult.AsT1);
@@ -44,7 +39,8 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolCommand
                 -1);
         }
 
-        Option<Error[]> runBatchResult = await aiClient.RunBatch(_batchName, newPartsCreateLimit, cancellationToken);
+        Option<Error[]> runBatchResult =
+            await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit, cancellationToken);
 
         return runBatchResult.IsNone || ReturnFalseLogErrors((Error[])runBatchResult);
     }

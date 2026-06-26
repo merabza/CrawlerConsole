@@ -22,8 +22,7 @@ public class TasksListFactoryStrategy(
         return apiClient.GetTasksList().GetAwaiter().GetResult().Match(
             tasks => tasks.OrderBy(o => o.TaskName)
                 .Select(task => new TaskSubMenuCliMenuCommand(logger, httpClientFactory, parametersManager, apiClient,
-                    task.TaskName)).Cast<CliMenuCommand>().ToList(),
-            errors =>
+                    task.TaskName)).Cast<CliMenuCommand>().ToList(), errors =>
             {
                 Error.PrintErrorsOnConsole(errors);
                 return new List<CliMenuCommand>();

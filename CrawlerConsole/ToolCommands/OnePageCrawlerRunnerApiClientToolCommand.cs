@@ -1,8 +1,6 @@
 using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AppCliTools.CliParametersApiClientsEdit.Parameters;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
 using LanguageExt;
@@ -12,16 +10,15 @@ using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.ToolCommands;
 
-public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolCommand
+public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolAction
 {
     public const string ActionName = "Clear RawWordsByLemmas";
     private readonly string _strUrl;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public OnePageCrawlerRunnerApiClientToolCommand(ILogger logger, IHttpClientFactory httpClientFactory,
-        ApiToolCommandParameters par, Uri url, string taskName) : base(logger,
-        httpClientFactory, ActionName, par, null, ActionName, true)
+    public OnePageCrawlerRunnerApiClientToolCommand(ILogger logger, CrawlerServiceApiClient crawlerServiceApiClient,
+        Uri url, string taskName) : base(logger, ActionName, crawlerServiceApiClient)
     {
         _strUrl = url.ToString();
         _taskName = taskName;
@@ -29,11 +26,9 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolComm
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        CrawlerServiceApiClient aiClient = CreateCrawlerServiceApiClient();
-
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხები ენდპოინტს პარამეტრად გადაეცემა
         OneOf<CrawlerPreCheckResult, Error[]> preCheckResult =
-            await aiClient.PreCheck(_taskName, _strUrl, cancellationToken);
+            await CrawlerServiceApiClient.PreCheck(_taskName, _strUrl, cancellationToken);
         if (preCheckResult.IsT1)
         {
             return ReturnFalseLogErrors(preCheckResult.AsT1);
@@ -49,7 +44,7 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolComm
             ? 1
             : 0;
 
-        Option<Error[]> testOnePageResult = await aiClient.TestOnePage(
+        Option<Error[]> testOnePageResult = await CrawlerServiceApiClient.TestOnePage(
             new TestOnePageRequest
             {
                 Url = _strUrl,

@@ -44,7 +44,7 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(new EditTaskNameCliMenuCommand(_apiClient, Name));
 
         //პროექტის პარამეტრი
-        var taskCruder = TaskCruder.Create(_logger, _httpClientFactory, _parametersManager, _apiClient);
+        var taskCruder = TaskCruder.Create(_apiClient);
         var editCommand = new EditItemAllFieldsInSequenceCliMenuCommand(taskCruder, _taskName);
         taskSubMenuSet.AddMenuItem(editCommand);
 
@@ -53,13 +53,13 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(new TaskCliMenuCommand(_logger, _httpClientFactory, _apiClient, _parametersManager,
             Name));
 
-        taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
+        taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _apiClient, _parametersManager,
             _apiClient, Name));
 
-        taskSubMenuSet.AddMenuItem(new RunBatchCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
+        taskSubMenuSet.AddMenuItem(new RunBatchCliMenuCommand(_logger, _apiClient, _parametersManager,
             _apiClient, Name));
 
-        taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _httpClientFactory, _parametersManager,
+        taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _apiClient, _parametersManager,
             _apiClient, Name));
 
         var newStartPointCommand = new NewStartPointCliMenuCommand(_apiClient, Name);
