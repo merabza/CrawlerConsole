@@ -44,6 +44,12 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
         Option<Error[]> runTaskResult = await CrawlerServiceApiClient.RunTask(
             new RunTaskRequest { TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit }, cancellationToken);
 
-        return runTaskResult.IsNone || ReturnFalseLogErrors((Error[])runTaskResult);
+        if (runTaskResult.IsSome)
+        {
+            return ReturnFalseLogErrors((Error[])runTaskResult);
+        }
+
+        //ამოცანა გაეშვა, ავტომატურად ჩავრთოთ მონიტორინგი
+        return await RunProcessMonitoring(cancellationToken);
     }
 }

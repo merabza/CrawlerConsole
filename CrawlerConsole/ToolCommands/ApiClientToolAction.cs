@@ -1,4 +1,6 @@
-﻿using CrawlerServiceShared.Contracts;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
 using SystemTools.BackgroundTasks;
 using SystemTools.SystemToolsShared.Errors;
@@ -36,5 +38,12 @@ public /*open*/ class ApiClientToolAction : ToolAction
         _logger.LogError("Action {ToolActionName} finished with errors", ToolActionName);
         Error.PrintErrorsOnConsole(errors);
         return false;
+    }
+
+    //გაშვებული პროცესის მონიტორინგის ავტომატური ჩართვა
+    protected async ValueTask<bool> RunProcessMonitoring(CancellationToken cancellationToken)
+    {
+        var processMonitoringToolCommand = new ProcessMonitoringApiClientToolCommand(_logger, CrawlerServiceApiClient);
+        return await processMonitoringToolCommand.Run(cancellationToken);
     }
 }

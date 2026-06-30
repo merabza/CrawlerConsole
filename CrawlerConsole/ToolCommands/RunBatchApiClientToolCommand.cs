@@ -42,6 +42,12 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
         Option<Error[]> runBatchResult =
             await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit, cancellationToken);
 
-        return runBatchResult.IsNone || ReturnFalseLogErrors((Error[])runBatchResult);
+        if (runBatchResult.IsSome)
+        {
+            return ReturnFalseLogErrors((Error[])runBatchResult);
+        }
+
+        //ბაჩი გაეშვა, ავტომატურად ჩავრთოთ მონიტორინგი
+        return await RunProcessMonitoring(cancellationToken);
     }
 }
