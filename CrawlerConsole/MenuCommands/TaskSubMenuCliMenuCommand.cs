@@ -62,6 +62,11 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _apiClient, _parametersManager,
             _apiClient, Name));
 
+        taskSubMenuSet.AddMenuItem(new ProcessMonitoringCliMenuCommand(_logger, _apiClient, _parametersManager, Name));
+
+        taskSubMenuSet.AddMenuItem(new CancelCurrentProcessCliMenuCommand(_logger, _apiClient, _parametersManager,
+            Name));
+
         var newStartPointCommand = new NewStartPointCliMenuCommand(_apiClient, Name);
         taskSubMenuSet.AddMenuItem(newStartPointCommand);
 

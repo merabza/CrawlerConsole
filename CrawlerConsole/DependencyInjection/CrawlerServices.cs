@@ -47,7 +47,7 @@ public static class CrawlerServices
 
         // @formatter:off
         services
-            .AddSerilogLoggerService(LogEventLevel.Information, appName, par.LogFolder)
+            .AddSerilogLoggerService(LogEventLevel.Warning, appName, par.LogFolder)
             .AddHttpClient()
 
             //მენიუს სტრატეგიები, რომლებიც სერვისზე არ არიან დამოკიდებული და ყოველთვის ხელმისაწვდომია
