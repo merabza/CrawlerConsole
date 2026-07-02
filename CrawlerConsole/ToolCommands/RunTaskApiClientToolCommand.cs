@@ -38,7 +38,7 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
         {
             newPartsCreateLimit = Inputer.InputInt(
                 $"Opened part not found for batch {_taskName}. Auto-create new parts count (0 = no, -1 = unlimited)",
-                -1);
+                0);
         }
 
         Option<Error[]> runTaskResult = await CrawlerServiceApiClient.RunTask(

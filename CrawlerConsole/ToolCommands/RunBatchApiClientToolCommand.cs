@@ -36,7 +36,7 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
         {
             newPartsCreateLimit = Inputer.InputInt(
                 $"Opened part not found for batch {_batchName}. Auto-create new parts count (0 = no, -1 = unlimited)",
-                -1);
+                0);
         }
 
         Option<Error[]> runBatchResult =
