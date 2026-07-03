@@ -44,6 +44,7 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
 
         Console.WriteLine("Press Escape for Stop monitoring");
 
+        var stoppedByEscape = false;
         while (ProcessMonitoringManager.Instance.ProcessIsRunning)
         {
             if (Console.KeyAvailable)
@@ -51,6 +52,7 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
                 ConsoleKeyInfo ch = Console.ReadKey(true);
                 if (ch.Key == ConsoleKey.Escape)
                 {
+                    stoppedByEscape = true;
                     break;
                 }
             }
@@ -58,6 +60,13 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
             await Task.Delay(1000, cancellationToken);
         }
 
-        return await CrawlerServiceApiClient.StopMessages(cancellationToken);
+        bool stopMessagesResult = await CrawlerServiceApiClient.StopMessages(cancellationToken);
+
+        if (stoppedByEscape)
+        {
+            Console.WriteLine("Monitoring stopped, but the process on the server continues");
+        }
+
+        return stopMessagesResult;
     }
 }
