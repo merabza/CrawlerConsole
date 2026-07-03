@@ -12,6 +12,9 @@ namespace CrawlerConsole.ToolCommands;
 public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
 {
     public const string ActionName = "Run Batch";
+
+    //პროგრესის შეტყობინებების გაგზავნებს შორის მინიმალური დაყოვნება წამებში
+    private const int ProgressDelaySeconds = 1;
     private readonly string _batchName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
@@ -39,8 +42,8 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
                 0);
         }
 
-        Option<Error[]> runBatchResult =
-            await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit, cancellationToken);
+        Option<Error[]> runBatchResult = await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit,
+            ProgressDelaySeconds, cancellationToken);
 
         if (runBatchResult.IsSome)
         {

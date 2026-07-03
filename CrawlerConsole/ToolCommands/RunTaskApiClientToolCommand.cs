@@ -12,6 +12,9 @@ namespace CrawlerConsole.ToolCommands;
 public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
 {
     public const string ActionName = "Run Task";
+
+    //პროგრესის შეტყობინებების გაგზავნებს შორის მინიმალური დაყოვნება წამებში
+    private const int ProgressDelaySeconds = 1;
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
@@ -42,7 +45,11 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
         }
 
         Option<Error[]> runTaskResult = await CrawlerServiceApiClient.RunTask(
-            new RunTaskRequest { TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit }, cancellationToken);
+            new RunTaskRequest
+            {
+                TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit,
+                ProgressDelaySeconds = ProgressDelaySeconds
+            }, cancellationToken);
 
         if (runTaskResult.IsSome)
         {

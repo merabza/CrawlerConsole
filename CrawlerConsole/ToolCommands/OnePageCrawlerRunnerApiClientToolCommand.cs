@@ -13,6 +13,9 @@ namespace CrawlerConsole.ToolCommands;
 public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolAction
 {
     public const string ActionName = "Clear RawWordsByLemmas";
+
+    //პროგრესის შეტყობინებების გაგზავნებს შორის მინიმალური დაყოვნება წამებში
+    private const int ProgressDelaySeconds = 1;
     private readonly string _strUrl;
     private readonly string _taskName;
 
@@ -50,7 +53,8 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
                 Url = _strUrl,
                 TaskName = _taskName,
                 DeleteContentForReanalyze = deleteContentForReanalyze,
-                NewPartsCreateLimit = newPartsCreateLimit
+                NewPartsCreateLimit = newPartsCreateLimit,
+                ProgressDelaySeconds = ProgressDelaySeconds
             }, cancellationToken);
 
         return testOnePageResult.IsNone || ReturnFalseLogErrors((Error[])testOnePageResult);
