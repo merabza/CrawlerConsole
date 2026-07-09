@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersDataEdit\AppCliTools.CliParametersDataEdit.csproj" />
-    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliTools\AppCliTools.CliTools.csproj" />
     <ProjectReference Include="..\..\CrawlerServiceShared\CrawlerServiceShared.Contracts\CrawlerServiceShared.Contracts.csproj" />
     <ProjectReference Include="..\CrawlerConsoleData\CrawlerConsoleData.csproj" />
     <ProjectReference Include="..\SystemTools.DependencyInjection\SystemTools.DependencyInjection.csproj" />
@@ -13,6 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AppCliTools.CliParametersDataEdit" />
+    <PackageReference Include="AppCliTools.CliTools" />
     <PackageReference Include="SystemTools.SerilogStuff" />
   </ItemGroup>
 

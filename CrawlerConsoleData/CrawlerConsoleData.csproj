@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ParametersManagement\ParametersManagement.LibDatabaseParameters\ParametersManagement.LibDatabaseParameters.csproj" />
-    <ProjectReference Include="..\..\ParametersManagement\ParametersManagement.LibFileParameters\ParametersManagement.LibFileParameters.csproj" />
+    <PackageReference Include="ParametersManagement.LibDatabaseParameters" />
+    <PackageReference Include="ParametersManagement.LibFileParameters" />
   </ItemGroup>
 
 </Project>
