@@ -42,7 +42,7 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
         bool deleteContentForReanalyze = preCheck.PageAlreadyAnalyzed && Inputer.InputBool(
             $"The page {_strUrl} already analyzed. Do you wont to delete Content data for reanalyze", true, false);
 
-        int newPartsCreateLimit = !preCheck.HasOpenPart && !preCheck.AutoCreateNextPart &&
+        int newPartsCreateLimit = preCheck is { HasOpenPart: false, AutoCreateNextPart: false } &&
                                   Inputer.InputBool("Opened part not found, Create new?", true, false)
             ? 1
             : 0;
