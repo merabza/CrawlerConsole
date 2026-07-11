@@ -19,14 +19,6 @@
     <Project Path="../ConnectionTools/ConnectionTools.CToolsFactory/ConnectionTools.CToolsFactory.csproj" />
     <Project Path="../ConnectionTools/ConnectionTools.FTPTools/ConnectionTools.FTPTools.csproj" />
   </Folder>
-  <Folder Name="/CrawlerDomain/">
-    <Project Path="../CrawlerDomain/CrawlerDbModels/CrawlerDbModels.csproj" />
-    <Project Path="../CrawlerDomain/CrawlerRepoInterfaces/CrawlerRepoInterfaces.csproj" />
-  </Folder>
-  <Folder Name="/CrawlerInfrastructure/">
-    <Project Path="../CrawlerInfrastructure/CrawlerDbPersistence/CrawlerDbPersistence.csproj" />
-    <Project Path="../CrawlerInfrastructure/CrawlerRepositories/CrawlerRepositories.csproj" />
-  </Folder>
   <Folder Name="/CrawlerServiceShared/">
     <Project Path="../CrawlerServiceShared/CrawlerServiceShared.Contracts/CrawlerServiceShared.Contracts.csproj" />
   </Folder>

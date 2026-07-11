@@ -37,7 +37,7 @@ public sealed class CancelCurrentProcessApiClientToolCommand : ApiClientToolActi
         //დაველოდოთ, სანამ სერვერზე პროცესი ნამდვილად გაჩერდება
         Console.WriteLine("Waiting for process to stop...");
 
-        for (var i = 0; i < WaitForStopSeconds; i++)
+        for (int i = 0; i < WaitForStopSeconds; i++)
         {
             OneOf<ProgressData, Error[]> statusResult =
                 await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);

@@ -44,7 +44,7 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
 
         Console.WriteLine("Press Escape for Stop monitoring");
 
-        var stoppedByEscape = false;
+        bool stoppedByEscape = false;
         while (ProcessMonitoringManager.Instance.ProcessIsRunning)
         {
             if (Console.KeyAvailable)
