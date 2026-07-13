@@ -8,6 +8,7 @@
     <PackageVersion Include="AppCliTools.CliParametersDataEdit" Version="1.0.9686.36108" />
     <PackageVersion Include="AppCliTools.CliTools" Version="1.0.9686.36108" />
     <PackageVersion Include="AppCliTools.LibDataInput" Version="1.0.9686.36108" />
+    <PackageVersion Include="CrawlerServiceShared.Contracts" Version="1.0.9690.7970" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
     <PackageVersion Include="ParametersManagement.LibApiClientParameters" Version="1.0.9686.34062" />
     <PackageVersion Include="ParametersManagement.LibDatabaseParameters" Version="1.0.9686.34062" />
