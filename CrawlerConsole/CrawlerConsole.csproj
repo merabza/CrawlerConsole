@@ -3,17 +3,14 @@
   <ItemGroup>
     <ProjectReference Include="..\CrawlerConsoleData\CrawlerConsoleData.csproj" />
     <ProjectReference Include="..\SystemTools.DependencyInjection\SystemTools.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersDataEdit\AppCliTools.CliParametersDataEdit.csproj" />
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliTools\AppCliTools.CliTools.csproj" />
+    <ProjectReference Include="..\..\CrawlerServiceShared\CrawlerServiceShared.Contracts\CrawlerServiceShared.Contracts.csproj" />
+    <ProjectReference Include="..\..\SystemTools\SystemTools.SerilogStuff\SystemTools.SerilogStuff.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="ApiClientToolCommands\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="AppCliTools.CliParametersDataEdit" />
-    <PackageReference Include="AppCliTools.CliTools" />
-    <PackageReference Include="CrawlerServiceShared.Contracts" />
-    <PackageReference Include="SystemTools.SerilogStuff" />
   </ItemGroup>
 
   <PropertyGroup>
