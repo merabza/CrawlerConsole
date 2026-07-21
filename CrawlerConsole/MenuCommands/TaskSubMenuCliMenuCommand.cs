@@ -41,6 +41,8 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         var deleteTaskCommand = new DeleteTaskCliMenuCommand(_apiClient, Name);
         taskSubMenuSet.AddMenuItem(deleteTaskCommand);
 
+        taskSubMenuSet.AddMenuItem(new ClearTaskFetchedDataCliMenuCommand(_apiClient, Name));
+
         taskSubMenuSet.AddMenuItem(new EditTaskNameCliMenuCommand(_apiClient, Name));
 
         //პროექტის პარამეტრი
