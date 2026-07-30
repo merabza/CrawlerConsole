@@ -33,7 +33,7 @@ public sealed class CrawlerMenuBuilder(
         if (CheckConnection())
         {
             return CliMenuSetFactory.CreateMenuSet("Main Menu",
-                MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList).ToList(), serviceProvider, true);
+                [.. MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList)], serviceProvider, true);
         }
 
         excludeList.Add(nameof(HostListCliMenuCommandFactoryStrategy));
@@ -44,7 +44,7 @@ public sealed class CrawlerMenuBuilder(
 
         //მთავარი მენიუს ჩატვირთვა
         return CliMenuSetFactory.CreateMenuSet("Main Menu",
-            MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList).ToList(), serviceProvider, true);
+            [.. MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList)], serviceProvider, true);
     }
 
     private bool CheckConnection()
@@ -82,7 +82,9 @@ public sealed class CrawlerMenuBuilder(
         }
         catch
         {
-            StShared.WriteErrorLine("Error when checked connection. Start server part, or configure connection to right server", true, null, false);
+            StShared.WriteErrorLine(
+                "Error when checked connection. Start server part, or configure connection to right server", true, null,
+                false);
             return false;
         }
     }

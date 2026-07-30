@@ -39,13 +39,11 @@ public sealed class BatchCruder : Cruder
 
     private List<BatchDto> GetBatches()
     {
-        return _apiClient.GetBatchesList().GetAwaiter().GetResult().Match(
-            batches => batches,
-            errors =>
-            {
-                Error.PrintErrorsOnConsole(errors);
-                return new List<BatchDto>();
-            });
+        return _apiClient.GetBatchesList().GetAwaiter().GetResult().Match(batches => batches, errors =>
+        {
+            Error.PrintErrorsOnConsole(errors);
+            return [];
+        });
     }
 
     protected override Dictionary<string, ItemData> GetCrudersDictionary()

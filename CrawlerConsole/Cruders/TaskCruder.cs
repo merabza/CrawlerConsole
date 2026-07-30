@@ -83,8 +83,8 @@ public sealed class TaskCruder : Cruder
         var task = new TaskDto
         {
             TaskName = recordKey,
-            StartPoints = newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint })
-                .ToList()
+            StartPoints =
+                [.. newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint })]
         };
 
         OneOf<TaskDto, Error[]> createResult = await _apiClient.CreateTask(task, cancellationToken);

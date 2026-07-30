@@ -26,12 +26,11 @@ public sealed class HostByBatchCruder : Cruder
 
     public List<string> GetHostNamesByBatch()
     {
-        return _apiClient.GetHostStartUrlNamesByBatch(_batch.BatchName).GetAwaiter().GetResult().Match(
-            names => names,
+        return _apiClient.GetHostStartUrlNamesByBatch(_batch.BatchName).GetAwaiter().GetResult().Match(names => names,
             errors =>
             {
                 Error.PrintErrorsOnConsole(errors);
-                return new List<string>();
+                return [];
             });
     }
 
