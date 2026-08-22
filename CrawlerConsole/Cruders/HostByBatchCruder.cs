@@ -29,7 +29,7 @@ public sealed class HostByBatchCruder : Cruder
         return _apiClient.GetHostStartUrlNamesByBatch(_batch.BatchName).GetAwaiter().GetResult().Match(names => names,
             errors =>
             {
-                Error.PrintErrorsOnConsole(errors);
+                ErrorOmd.PrintErrorsOnConsole(errors);
                 return [];
             });
     }
@@ -53,11 +53,11 @@ public sealed class HostByBatchCruder : Cruder
         CancellationToken cancellationToken = default)
     {
         var uri = new Uri(recordKey);
-        Option<Error[]> removeResult =
+        Option<ErrorOmd[]> removeResult =
             await _apiClient.RemoveHostByBatch(_batch.BatchName, uri.Scheme, uri.Host, cancellationToken);
         if (removeResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])removeResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])removeResult);
         }
     }
 
@@ -65,12 +65,12 @@ public sealed class HostByBatchCruder : Cruder
         CancellationToken cancellationToken = default)
     {
         var uri = new Uri(recordKey);
-        Option<Error[]> addResult = await _apiClient.AddHostByBatch(
+        Option<ErrorOmd[]> addResult = await _apiClient.AddHostByBatch(
             new HostByBatchRequest { BatchName = _batch.BatchName, SchemeName = uri.Scheme, HostName = uri.Host },
             cancellationToken);
         if (addResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])addResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])addResult);
         }
     }
 }

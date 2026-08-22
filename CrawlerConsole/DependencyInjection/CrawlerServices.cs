@@ -13,9 +13,7 @@ using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
 using ParametersManagement.LibParameters.DependencyInjection;
 using Serilog.Events;
-using SystemTools.DependencyInjection;
 using SystemTools.SerilogStuff.DependencyInjection;
-using SystemTools.SystemToolsShared;
 using SystemTools.SystemToolsShared.DependencyInjection;
 
 namespace CrawlerConsole.DependencyInjection;

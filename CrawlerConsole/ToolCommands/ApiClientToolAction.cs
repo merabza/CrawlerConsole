@@ -9,8 +9,8 @@ namespace CrawlerConsole.ToolCommands;
 
 public /*open*/ class ApiClientToolAction : ToolAction
 {
-    private readonly ILogger _logger;
     protected readonly CrawlerServiceApiClient CrawlerServiceApiClient;
+    private readonly ILogger _logger;
 
     protected ApiClientToolAction(ILogger logger, string actionName, CrawlerServiceApiClient crawlerServiceApiClient) :
         base(logger, actionName, null, null)
@@ -33,10 +33,10 @@ public /*open*/ class ApiClientToolAction : ToolAction
     //    return new CrawlerServiceApiClient(_logger, HttpClientFactory, par.Api.Server, par.Api.ApiKey, true);
     //}
 
-    protected bool ReturnFalseLogErrors(Error[] errors)
+    protected bool ReturnFalseLogErrors(ErrorOmd[] errors)
     {
         _logger.LogError("Action {ToolActionName} finished with errors", ToolActionName);
-        Error.PrintErrorsOnConsole(errors);
+        ErrorOmd.PrintErrorsOnConsole(errors);
         return false;
     }
 

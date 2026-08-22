@@ -27,7 +27,7 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხი ენდპოინტს პარამეტრად გადაეცემა
-        OneOf<CrawlerPreCheckResult, Error[]> preCheckResult =
+        OneOf<CrawlerPreCheckResult, ErrorOmd[]> preCheckResult =
             await CrawlerServiceApiClient.PreCheck(_batchName, null, cancellationToken);
         if (preCheckResult.IsT1)
         {
@@ -42,12 +42,12 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
                 0);
         }
 
-        Option<Error[]> runBatchResult = await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit,
+        Option<ErrorOmd[]> runBatchResult = await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit,
             ProgressDelaySeconds, cancellationToken);
 
         if (runBatchResult.IsSome)
         {
-            return ReturnFalseLogErrors((Error[])runBatchResult);
+            return ReturnFalseLogErrors((ErrorOmd[])runBatchResult);
         }
 
         //ბაჩი გაეშვა, ავტომატურად ჩავრთოთ მონიტორინგი

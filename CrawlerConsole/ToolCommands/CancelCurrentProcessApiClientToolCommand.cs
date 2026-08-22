@@ -23,7 +23,7 @@ public sealed class CancelCurrentProcessApiClientToolCommand : ApiClientToolActi
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        OneOf<bool, Error[]> result = await CrawlerServiceApiClient.CancelCurrentProcess(cancellationToken);
+        OneOf<bool, ErrorOmd[]> result = await CrawlerServiceApiClient.CancelCurrentProcess(cancellationToken);
         if (result.IsT1)
         {
             return ReturnFalseLogErrors(result.AsT1);
@@ -39,7 +39,7 @@ public sealed class CancelCurrentProcessApiClientToolCommand : ApiClientToolActi
 
         for (int i = 0; i < WaitForStopSeconds; i++)
         {
-            OneOf<ProgressData, Error[]> statusResult =
+            OneOf<ProgressData, ErrorOmd[]> statusResult =
                 await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);
             if (statusResult.IsT1)
             {

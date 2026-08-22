@@ -65,14 +65,14 @@ public sealed class CrawlerMenuBuilder(
             using var cts = new CancellationTokenSource();
             CancellationToken token = cts.Token;
             token.ThrowIfCancellationRequested();
-            OneOf<bool, Error[]> testConnectionResult = apiClient.TestConnection(token).Result;
+            OneOf<bool, ErrorOmd[]> testConnectionResult = apiClient.TestConnection(token).Result;
 
             if (testConnectionResult.IsT0)
             {
                 return testConnectionResult.AsT0;
             }
 
-            Error.PrintErrorsOnConsole(testConnectionResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(testConnectionResult.AsT1);
             return false;
         }
         catch (OperationCanceledException)
@@ -83,8 +83,8 @@ public sealed class CrawlerMenuBuilder(
         catch
         {
             StShared.WriteErrorLine(
-                "Error when checked connection. Start server part, or configure connection to right server", true, null,
-                false);
+                "ErrorOmd when checked connection. Start server part, or configure connection to right server", true,
+                null, false);
             return false;
         }
     }

@@ -33,10 +33,10 @@ public sealed class TestOnePageCliMenuCommand : ApiCliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
         if (taskResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
             return false;
         }
 

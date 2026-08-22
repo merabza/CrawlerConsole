@@ -41,7 +41,7 @@ public sealed class BatchCruder : Cruder
     {
         return _apiClient.GetBatchesList().GetAwaiter().GetResult().Match(batches => batches, errors =>
         {
-            Error.PrintErrorsOnConsole(errors);
+            ErrorOmd.PrintErrorsOnConsole(errors);
             return [];
         });
     }
@@ -64,10 +64,10 @@ public sealed class BatchCruder : Cruder
             return;
         }
 
-        OneOf<BatchDto?, Error[]> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
+        OneOf<BatchDto?, ErrorOmd[]> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
         if (batchResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(batchResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(batchResult.AsT1);
             return;
         }
 
@@ -80,10 +80,10 @@ public sealed class BatchCruder : Cruder
 
         batch.BatchName = newBatch.BatchName;
 
-        Option<Error[]> updateResult = await _apiClient.UpdateBatch(batch, cancellationToken);
+        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateBatch(batch, cancellationToken);
         if (updateResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])updateResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
         }
     }
 
@@ -95,20 +95,20 @@ public sealed class BatchCruder : Cruder
             return;
         }
 
-        OneOf<BatchDto, Error[]> createResult = await _apiClient.CreateBatch(newBatch, cancellationToken);
+        OneOf<BatchDto, ErrorOmd[]> createResult = await _apiClient.CreateBatch(newBatch, cancellationToken);
         if (createResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(createResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<Error[]> deleteResult = await _apiClient.DeleteBatch(recordKey, cancellationToken);
+        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteBatch(recordKey, cancellationToken);
         if (deleteResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])deleteResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
         }
     }
 

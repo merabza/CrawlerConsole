@@ -25,10 +25,9 @@ public sealed class SchemeCruder : Cruder
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
         return _apiClient.GetSchemesList().GetAwaiter().GetResult().Match(
-            schemes => schemes.ToDictionary(k => k.SchName, ItemData (v) => v),
-            errors =>
+            schemes => schemes.ToDictionary(k => k.SchName, ItemData (v) => v), errors =>
             {
-                Error.PrintErrorsOnConsole(errors);
+                ErrorOmd.PrintErrorsOnConsole(errors);
                 return new Dictionary<string, ItemData>();
             });
     }
@@ -46,10 +45,10 @@ public sealed class SchemeCruder : Cruder
             return;
         }
 
-        OneOf<SchemeDto?, Error[]> schemeResult = await _apiClient.GetSchemeByName(recordKey, cancellationToken);
+        OneOf<SchemeDto?, ErrorOmd[]> schemeResult = await _apiClient.GetSchemeByName(recordKey, cancellationToken);
         if (schemeResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(schemeResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(schemeResult.AsT1);
             return;
         }
 
@@ -62,10 +61,10 @@ public sealed class SchemeCruder : Cruder
 
         scheme.SchName = newScheme.SchName;
 
-        Option<Error[]> updateResult = await _apiClient.UpdateScheme(scheme, cancellationToken);
+        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateScheme(scheme, cancellationToken);
         if (updateResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])updateResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
         }
     }
 
@@ -77,20 +76,20 @@ public sealed class SchemeCruder : Cruder
             return;
         }
 
-        OneOf<SchemeDto, Error[]> createResult = await _apiClient.CreateScheme(newScheme, cancellationToken);
+        OneOf<SchemeDto, ErrorOmd[]> createResult = await _apiClient.CreateScheme(newScheme, cancellationToken);
         if (createResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(createResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<Error[]> deleteResult = await _apiClient.DeleteScheme(recordKey, cancellationToken);
+        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteScheme(recordKey, cancellationToken);
         if (deleteResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])deleteResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
         }
     }
 

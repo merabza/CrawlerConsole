@@ -55,30 +55,31 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(new TaskCliMenuCommand(_logger, _httpClientFactory, _apiClient, _parametersManager,
             Name));
 
-        taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _apiClient, _parametersManager,
-            _apiClient, Name));
+        taskSubMenuSet.AddMenuItem(new RunTaskCliMenuCommand(_logger, _apiClient, _parametersManager, _apiClient,
+            Name));
 
-        taskSubMenuSet.AddMenuItem(new RunBatchCliMenuCommand(_logger, _apiClient, _parametersManager,
-            _apiClient, Name));
+        taskSubMenuSet.AddMenuItem(
+            new RunBatchCliMenuCommand(_logger, _apiClient, _parametersManager, _apiClient, Name));
 
-        taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _apiClient, _parametersManager,
-            _apiClient, Name));
+        taskSubMenuSet.AddMenuItem(new TestOnePageCliMenuCommand(_logger, _apiClient, _parametersManager, _apiClient,
+            Name));
 
         taskSubMenuSet.AddMenuItem(new ProcessMonitoringCliMenuCommand(_logger, _apiClient, _parametersManager, Name));
 
-        taskSubMenuSet.AddMenuItem(new CancelCurrentProcessCliMenuCommand(_logger, _apiClient, _parametersManager,
-            Name));
+        taskSubMenuSet.AddMenuItem(
+            new CancelCurrentProcessCliMenuCommand(_logger, _apiClient, _parametersManager, Name));
 
         var newStartPointCommand = new NewStartPointCliMenuCommand(_apiClient, Name);
         taskSubMenuSet.AddMenuItem(newStartPointCommand);
 
-        OneOf<TaskDto?, Error[]> taskResult = _apiClient.GetTaskByName(Name).GetAwaiter().GetResult();
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = _apiClient.GetTaskByName(Name).GetAwaiter().GetResult();
         TaskDto? task = taskResult.IsT0 ? taskResult.AsT0 : null;
         if (task is not null)
         {
             foreach (TaskStartPointDto startPoint in task.StartPoints.OrderBy(o => o.StartPoint))
             {
-                taskSubMenuSet.AddMenuItem(new StartPointSubMenuCliMenuCommand(_apiClient, Name, startPoint.StartPoint));
+                taskSubMenuSet.AddMenuItem(
+                    new StartPointSubMenuCliMenuCommand(_apiClient, Name, startPoint.StartPoint));
             }
         }
 

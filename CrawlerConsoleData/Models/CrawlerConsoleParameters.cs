@@ -1,6 +1,5 @@
 //Created by ProjectParametersClassCreator at 4/22/2021 17:17:01
 
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -11,8 +10,8 @@ using ParametersManagement.LibFileParameters.Models;
 
 namespace CrawlerConsoleData.Models;
 
-public sealed class CrawlerConsoleParameters : IParametersWithApiClients,
-    IParametersWithSmartSchemas, IParametersWithFileStorages
+public sealed class CrawlerConsoleParameters : IParametersWithApiClients, IParametersWithSmartSchemas,
+    IParametersWithFileStorages
 {
     private string _possibleSymbols = string.Empty;
 
@@ -32,10 +31,10 @@ public sealed class CrawlerConsoleParameters : IParametersWithApiClients,
     public string? ExtraSymbols { get; set; }
 
     public Dictionary<string, PunctuationModel> Punctuations { get; init; } = [];
-    public Dictionary<string, ApiClientSettings> ApiClients { get; } = [];
 
     //მენეჯმენტის (CRUD) ოპერაციებისთვის გამოსაყენებელი CrawlerService-ის ApiClient-ის სახელი (ApiClients-იდან)
     public string? ManagementApiClientName { get; set; }
+    public Dictionary<string, ApiClientSettings> ApiClients { get; } = [];
 
     public bool CheckBeforeSave()
     {

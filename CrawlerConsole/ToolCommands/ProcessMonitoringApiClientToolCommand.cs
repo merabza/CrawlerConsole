@@ -22,7 +22,7 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        OneOf<ProgressData, Error[]> statusResult =
+        OneOf<ProgressData, ErrorOmd[]> statusResult =
             await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);
         if (statusResult.IsT1)
         {

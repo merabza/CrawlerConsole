@@ -17,8 +17,8 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
     private readonly string _taskName;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public EditStartPointCliMenuCommand(CrawlerServiceApiClient apiClient, string taskName, string startPoint) :
-        base("Edit Start Point", EMenuAction.LevelUp, EMenuAction.Reload, taskName)
+    public EditStartPointCliMenuCommand(CrawlerServiceApiClient apiClient, string taskName, string startPoint) : base(
+        "Edit Start Point", EMenuAction.LevelUp, EMenuAction.Reload, taskName)
     {
         _apiClient = apiClient;
         _taskName = taskName;
@@ -27,10 +27,10 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
         if (taskResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
             return false;
         }
 
@@ -41,11 +41,11 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
             return false;
         }
 
-        OneOf<TaskStartPointDto?, Error[]> startPointResult =
+        OneOf<TaskStartPointDto?, ErrorOmd[]> startPointResult =
             await _apiClient.GetStartPoint(task.TaskId, _startPoint, cancellationToken);
         if (startPointResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(startPointResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(startPointResult.AsT1);
             return false;
         }
 
@@ -67,11 +67,11 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
             return false; //თუ ცვლილება მართლაც მოითხოვეს
         }
 
-        OneOf<TaskStartPointDto?, Error[]> existingResult =
+        OneOf<TaskStartPointDto?, ErrorOmd[]> existingResult =
             await _apiClient.GetStartPoint(task.TaskId, newStartPoint, cancellationToken);
         if (existingResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(existingResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
             return false;
         }
 
@@ -82,10 +82,10 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
         }
 
         startPoint.StartPoint = newStartPoint;
-        Option<Error[]> updateResult = await _apiClient.UpdateStartPoint(startPoint, cancellationToken);
+        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateStartPoint(startPoint, cancellationToken);
         if (updateResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])updateResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
             return false;
         }
 

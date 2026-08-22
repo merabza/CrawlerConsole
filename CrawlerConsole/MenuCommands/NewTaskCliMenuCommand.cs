@@ -35,10 +35,10 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სახელით სხვა ამოცანა.
-        OneOf<TaskDto?, Error[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
         if (existingResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(existingResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
             return false;
         }
 
@@ -50,11 +50,11 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
         }
 
         //ახალი ამოცანის შექმნა და ჩაწერა ბაზაში
-        OneOf<TaskDto, Error[]> createResult =
+        OneOf<TaskDto, ErrorOmd[]> createResult =
             await _apiClient.CreateTask(new TaskDto { TaskName = newTaskName }, cancellationToken);
         if (createResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(createResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
             return false;
         }
 

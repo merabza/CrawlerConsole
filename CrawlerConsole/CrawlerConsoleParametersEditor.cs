@@ -3,8 +3,6 @@ using AppCliTools.CliParameters;
 using AppCliTools.CliParameters.FieldEditors;
 using AppCliTools.CliParametersApiClientsEdit;
 using AppCliTools.CliParametersApiClientsEdit.FieldEditors;
-using AppCliTools.CliParametersDataEdit.Cruders;
-using AppCliTools.CliParametersDataEdit.FieldEditors;
 using AppCliTools.CliParametersEdit.Cruders;
 using CrawlerConsole.Cruders;
 using CrawlerConsoleData.Models;
@@ -12,15 +10,13 @@ using Microsoft.Extensions.Logging;
 using ParametersManagement.LibApiClientParameters;
 using ParametersManagement.LibFileParameters.Models;
 using ParametersManagement.LibParameters;
-using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole;
 
 public sealed class CrawlerConsoleParametersEditor : ParametersEditor
 {
-    public CrawlerConsoleParametersEditor(IParameters parameters,
-        IParametersManager parametersManager, ILogger logger, IHttpClientFactory httpClientFactory) : base(
-        "CrawlerConsole Parameters Editor", parameters, parametersManager)
+    public CrawlerConsoleParametersEditor(IParameters parameters, IParametersManager parametersManager, ILogger logger,
+        IHttpClientFactory httpClientFactory) : base("CrawlerConsole Parameters Editor", parameters, parametersManager)
     {
         FieldEditors.Add(new FolderPathFieldEditor(nameof(CrawlerConsoleParameters.LogFolder)));
         FieldEditors.Add(new IntFieldEditor(nameof(CrawlerConsoleParameters.LoadPagesMaxCount), 10000));

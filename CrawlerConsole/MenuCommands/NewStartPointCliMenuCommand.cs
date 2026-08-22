@@ -25,10 +25,10 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
         if (taskResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
             return false;
         }
 
@@ -50,11 +50,11 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სტარტ პოინტი
-        OneOf<TaskStartPointDto?, Error[]> existingResult =
+        OneOf<TaskStartPointDto?, ErrorOmd[]> existingResult =
             await _apiClient.GetStartPoint(task.TaskId, newStartPoint, cancellationToken);
         if (existingResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(existingResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
             return false;
         }
 
@@ -67,11 +67,11 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
         }
 
         //ახალი სტარტ პოინტის ჩაწერა ბაზაში
-        OneOf<TaskStartPointDto, Error[]> addResult = await _apiClient.AddStartPoint(
+        OneOf<TaskStartPointDto, ErrorOmd[]> addResult = await _apiClient.AddStartPoint(
             new AddStartPointRequest { TaskId = task.TaskId, StartPoint = newStartPoint }, cancellationToken);
         if (addResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(addResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(addResult.AsT1);
             return false;
         }
 

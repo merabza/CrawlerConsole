@@ -30,7 +30,7 @@ public sealed class TaskCruder : Cruder
         return _apiClient.GetTasksList().GetAwaiter().GetResult().Match(
             tasks => tasks.ToDictionary(k => k.TaskName, ItemData (v) => v), errors =>
             {
-                Error.PrintErrorsOnConsole(errors);
+                ErrorOmd.PrintErrorsOnConsole(errors);
                 return new Dictionary<string, ItemData>();
             });
     }
@@ -48,10 +48,10 @@ public sealed class TaskCruder : Cruder
             return;
         }
 
-        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(recordKey, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(recordKey, cancellationToken);
         if (taskResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
             return;
         }
 
@@ -64,10 +64,10 @@ public sealed class TaskCruder : Cruder
 
         task.TaskName = newTask.TaskName;
 
-        Option<Error[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
+        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
         if (updateResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])updateResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
         }
     }
 
@@ -87,20 +87,20 @@ public sealed class TaskCruder : Cruder
                 [.. newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint })]
         };
 
-        OneOf<TaskDto, Error[]> createResult = await _apiClient.CreateTask(task, cancellationToken);
+        OneOf<TaskDto, ErrorOmd[]> createResult = await _apiClient.CreateTask(task, cancellationToken);
         if (createResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(createResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<Error[]> deleteResult = await _apiClient.DeleteTask(recordKey, cancellationToken);
+        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteTask(recordKey, cancellationToken);
         if (deleteResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])deleteResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
         }
     }
 

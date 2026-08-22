@@ -27,10 +27,9 @@ public sealed class HostCruder : Cruder
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
         return _apiClient.GetHostsList().GetAwaiter().GetResult().Match(
-            hosts => hosts.ToDictionary(k => k.HostName, ItemData (v) => v),
-            errors =>
+            hosts => hosts.ToDictionary(k => k.HostName, ItemData (v) => v), errors =>
             {
-                Error.PrintErrorsOnConsole(errors);
+                ErrorOmd.PrintErrorsOnConsole(errors);
                 return new Dictionary<string, ItemData>();
             });
     }
@@ -48,10 +47,10 @@ public sealed class HostCruder : Cruder
             return;
         }
 
-        OneOf<HostDto?, Error[]> hostResult = await _apiClient.GetHostByName(recordKey, cancellationToken);
+        OneOf<HostDto?, ErrorOmd[]> hostResult = await _apiClient.GetHostByName(recordKey, cancellationToken);
         if (hostResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(hostResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(hostResult.AsT1);
             return;
         }
 
@@ -64,10 +63,10 @@ public sealed class HostCruder : Cruder
 
         host.HostName = newHost.HostName;
 
-        Option<Error[]> updateResult = await _apiClient.UpdateHost(host, cancellationToken);
+        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateHost(host, cancellationToken);
         if (updateResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])updateResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
         }
     }
 
@@ -79,20 +78,20 @@ public sealed class HostCruder : Cruder
             return;
         }
 
-        OneOf<HostDto, Error[]> createResult = await _apiClient.CreateHost(newHost, cancellationToken);
+        OneOf<HostDto, ErrorOmd[]> createResult = await _apiClient.CreateHost(newHost, cancellationToken);
         if (createResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(createResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<Error[]> deleteResult = await _apiClient.DeleteHost(recordKey, cancellationToken);
+        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteHost(recordKey, cancellationToken);
         if (deleteResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])deleteResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
         }
     }
 

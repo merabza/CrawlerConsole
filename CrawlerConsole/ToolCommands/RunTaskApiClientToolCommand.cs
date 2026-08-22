@@ -29,7 +29,7 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
         //CrawlerServiceApiClient aiClient = CreateCrawlerServiceApiClient();
 
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხი ენდპოინტს პარამეტრად გადაეცემა
-        OneOf<CrawlerPreCheckResult, Error[]> preCheckResult =
+        OneOf<CrawlerPreCheckResult, ErrorOmd[]> preCheckResult =
             await CrawlerServiceApiClient.PreCheck(_taskName, null, cancellationToken);
         if (preCheckResult.IsT1)
         {
@@ -44,16 +44,17 @@ public sealed class RunTaskApiClientToolCommand : ApiClientToolAction
                 0);
         }
 
-        Option<Error[]> runTaskResult = await CrawlerServiceApiClient.RunTask(
+        Option<ErrorOmd[]> runTaskResult = await CrawlerServiceApiClient.RunTask(
             new RunTaskRequest
             {
-                TaskName = _taskName, NewPartsCreateLimit = newPartsCreateLimit,
+                TaskName = _taskName,
+                NewPartsCreateLimit = newPartsCreateLimit,
                 ProgressDelaySeconds = ProgressDelaySeconds
             }, cancellationToken);
 
         if (runTaskResult.IsSome)
         {
-            return ReturnFalseLogErrors((Error[])runTaskResult);
+            return ReturnFalseLogErrors((ErrorOmd[])runTaskResult);
         }
 
         //ამოცანა გაეშვა, ავტომატურად ჩავრთოთ მონიტორინგი

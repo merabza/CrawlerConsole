@@ -25,10 +25,10 @@ public sealed class ClearTaskFetchedDataCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
         if (taskResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
             return false;
         }
 
@@ -46,10 +46,10 @@ public sealed class ClearTaskFetchedDataCliMenuCommand : CliMenuCommand
         }
 
         //ტასკის მიერ მოქაჩული ინფორმაციის გასუფთავება ბაზაში (Batch თავისი შვილებით და ექსკლუზიური Urls-ები)
-        Option<Error[]> clearResult = await _apiClient.ClearTaskFetchedData(_taskName, cancellationToken);
+        Option<ErrorOmd[]> clearResult = await _apiClient.ClearTaskFetchedData(_taskName, cancellationToken);
         if (clearResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])clearResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])clearResult);
             return false;
         }
 

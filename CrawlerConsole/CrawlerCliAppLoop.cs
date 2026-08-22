@@ -175,13 +175,13 @@
 //                        return false;
 //                    }
 
-//                    OneOf<DbAuthSettingsBase, Error[]> dbAuthSettingsCreateResult = DbAuthSettingsCreator.Create(
+//                    OneOf<DbAuthSettingsBase, ErrorOmd[]> dbAuthSettingsCreateResult = DbAuthSettingsCreator.Create(
 //                        databaseServerConnectionData.WindowsNtIntegratedSecurity,
 //                        databaseServerConnectionData.ServerUser, databaseServerConnectionData.ServerPass, true);
 
 //                    if (dbAuthSettingsCreateResult.IsT1)
 //                    {
-//                        Error.PrintErrorsOnConsole(dbAuthSettingsCreateResult.AsT1);
+//                        ErrorOmd.PrintErrorsOnConsole(dbAuthSettingsCreateResult.AsT1);
 //                        return false;
 //                    }
 
@@ -196,13 +196,13 @@
 //                        return false;
 //                    }
 
-//                    Option<Error[]> testConnectionResult = dc.TestConnection(true, token).Result;
+//                    Option<ErrorOmd[]> testConnectionResult = dc.TestConnection(true, token).Result;
 //                    if (testConnectionResult.IsNone)
 //                    {
 //                        return true;
 //                    }
 
-//                    Error.PrintErrorsOnConsole((Error[])testConnectionResult);
+//                    ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])testConnectionResult);
 
 //                    Console.WriteLine("Database test connection failed");
 //                    break;
@@ -222,7 +222,7 @@
 //        }
 //        catch (Exception e)
 //        {
-//            _logger.LogError(e, "Error in CheckConnection");
+//            _logger.LogError(e, "ErrorOmd in CheckConnection");
 //            return false;
 //        }
 

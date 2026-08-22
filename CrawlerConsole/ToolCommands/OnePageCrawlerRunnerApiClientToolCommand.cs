@@ -30,7 +30,7 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხები ენდპოინტს პარამეტრად გადაეცემა
-        OneOf<CrawlerPreCheckResult, Error[]> preCheckResult =
+        OneOf<CrawlerPreCheckResult, ErrorOmd[]> preCheckResult =
             await CrawlerServiceApiClient.PreCheck(_taskName, _strUrl, cancellationToken);
         if (preCheckResult.IsT1)
         {
@@ -47,7 +47,7 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
             ? 1
             : 0;
 
-        Option<Error[]> testOnePageResult = await CrawlerServiceApiClient.TestOnePage(
+        Option<ErrorOmd[]> testOnePageResult = await CrawlerServiceApiClient.TestOnePage(
             new TestOnePageRequest
             {
                 Url = _strUrl,
@@ -57,6 +57,6 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
                 ProgressDelaySeconds = ProgressDelaySeconds
             }, cancellationToken);
 
-        return testOnePageResult.IsNone || ReturnFalseLogErrors((Error[])testOnePageResult);
+        return testOnePageResult.IsNone || ReturnFalseLogErrors((ErrorOmd[])testOnePageResult);
     }
 }

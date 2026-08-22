@@ -25,7 +25,7 @@ public class TasksListFactoryStrategy(
                 new TaskSubMenuCliMenuCommand(logger, httpClientFactory, parametersManager, apiClient, task.TaskName))
         ], errors =>
         {
-            Error.PrintErrorsOnConsole(errors);
+            ErrorOmd.PrintErrorsOnConsole(errors);
             return new List<CliMenuCommand>();
         });
     }

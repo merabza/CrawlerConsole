@@ -25,10 +25,10 @@ public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, Error[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
         if (taskResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(taskResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
             return false;
         }
 
@@ -51,10 +51,10 @@ public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
             return false; //თუ ცვლილება მართლაც მოითხოვეს
         }
 
-        OneOf<TaskDto?, Error[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
+        OneOf<TaskDto?, ErrorOmd[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
         if (existingResult.IsT1)
         {
-            Error.PrintErrorsOnConsole(existingResult.AsT1);
+            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
             return false;
         }
 
@@ -66,10 +66,10 @@ public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
 
         //სახელის შეცვლა ადგილზე — TaskId და Start Point-ები უცვლელი რჩება
         task.TaskName = newTaskName;
-        Option<Error[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
+        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
         if (updateResult.IsSome)
         {
-            Error.PrintErrorsOnConsole((Error[])updateResult);
+            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
             return false;
         }
 
