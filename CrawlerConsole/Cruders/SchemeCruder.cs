@@ -5,10 +5,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
 using AppCliTools.CliParameters.FieldEditors;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
@@ -25,9 +23,9 @@ public sealed class SchemeCruder : Cruder
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
         return _apiClient.GetSchemesList().GetAwaiter().GetResult().Match(
-            schemes => schemes.ToDictionary(k => k.SchName, ItemData (v) => v), errors =>
+            schemes => schemes.ToDictionary(k => k.SchName, ItemData (v) => v), failure =>
             {
-                ErrorOmd.PrintErrorsOnConsole(errors);
+                failure.Error.PrintErrorsOnConsole();
                 return new Dictionary<string, ItemData>();
             });
     }
@@ -45,14 +43,14 @@ public sealed class SchemeCruder : Cruder
             return;
         }
 
-        OneOf<SchemeDto?, ErrorOmd[]> schemeResult = await _apiClient.GetSchemeByName(recordKey, cancellationToken);
-        if (schemeResult.IsT1)
+        Result<SchemeDto?> schemeResult = await _apiClient.GetSchemeByName(recordKey, cancellationToken);
+        if (schemeResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(schemeResult.AsT1);
+            schemeResult.Error.PrintErrorsOnConsole();
             return;
         }
 
-        SchemeDto? scheme = schemeResult.AsT0;
+        SchemeDto? scheme = schemeResult.Value;
         if (scheme is null)
         {
             StShared.WriteErrorLine($"scheme {recordKey} not found", true);
@@ -61,10 +59,10 @@ public sealed class SchemeCruder : Cruder
 
         scheme.SchName = newScheme.SchName;
 
-        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateScheme(scheme, cancellationToken);
-        if (updateResult.IsSome)
+        Result updateResult = await _apiClient.UpdateScheme(scheme, cancellationToken);
+        if (updateResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
+            updateResult.Error.PrintErrorsOnConsole();
         }
     }
 
@@ -76,20 +74,20 @@ public sealed class SchemeCruder : Cruder
             return;
         }
 
-        OneOf<SchemeDto, ErrorOmd[]> createResult = await _apiClient.CreateScheme(newScheme, cancellationToken);
-        if (createResult.IsT1)
+        Result<SchemeDto> createResult = await _apiClient.CreateScheme(newScheme, cancellationToken);
+        if (createResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
+            createResult.Error.PrintErrorsOnConsole();
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteScheme(recordKey, cancellationToken);
-        if (deleteResult.IsSome)
+        Result deleteResult = await _apiClient.DeleteScheme(recordKey, cancellationToken);
+        if (deleteResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
+            deleteResult.Error.PrintErrorsOnConsole();
         }
     }
 

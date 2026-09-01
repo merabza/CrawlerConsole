@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -27,29 +25,29 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        TaskDto? task = taskResult.AsT0;
+        TaskDto? task = taskResult.Value;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} is not found", true);
             return false;
         }
 
-        OneOf<TaskStartPointDto?, ErrorOmd[]> startPointResult =
+        Result<TaskStartPointDto?> startPointResult =
             await _apiClient.GetStartPoint(task.TaskId, _startPoint, cancellationToken);
-        if (startPointResult.IsT1)
+        if (startPointResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(startPointResult.AsT1);
+            startPointResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        TaskStartPointDto? startPoint = startPointResult.AsT0;
+        TaskStartPointDto? startPoint = startPointResult.Value;
         if (startPoint is null)
         {
             StShared.WriteErrorLine($"Start Point {_startPoint} in Task {_taskName} is not found", true);
@@ -67,25 +65,25 @@ public sealed class EditStartPointCliMenuCommand : CliMenuCommand
             return false; //თუ ცვლილება მართლაც მოითხოვეს
         }
 
-        OneOf<TaskStartPointDto?, ErrorOmd[]> existingResult =
+        Result<TaskStartPointDto?> existingResult =
             await _apiClient.GetStartPoint(task.TaskId, newStartPoint, cancellationToken);
-        if (existingResult.IsT1)
+        if (existingResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
+            existingResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (existingResult.AsT0 is not null)
+        if (existingResult.Value is not null)
         {
             StShared.WriteErrorLine($"New Start Point {newStartPoint} is not valid", true);
             return false;
         }
 
         startPoint.StartPoint = newStartPoint;
-        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateStartPoint(startPoint, cancellationToken);
-        if (updateResult.IsSome)
+        Result updateResult = await _apiClient.UpdateStartPoint(startPoint, cancellationToken);
+        if (updateResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
+            updateResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -25,14 +23,14 @@ public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        TaskDto? task = taskResult.AsT0;
+        TaskDto? task = taskResult.Value;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} is not found", true);
@@ -51,14 +49,14 @@ public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
             return false; //თუ ცვლილება მართლაც მოითხოვეს
         }
 
-        OneOf<TaskDto?, ErrorOmd[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
-        if (existingResult.IsT1)
+        Result<TaskDto?> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
+        if (existingResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
+            existingResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (existingResult.AsT0 is not null)
+        if (existingResult.Value is not null)
         {
             StShared.WriteErrorLine($"New Name For Task {newTaskName} is not valid", true);
             return false;
@@ -66,10 +64,10 @@ public sealed class EditTaskNameCliMenuCommand : CliMenuCommand
 
         //სახელის შეცვლა ადგილზე — TaskId და Start Point-ები უცვლელი რჩება
         task.TaskName = newTaskName;
-        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
-        if (updateResult.IsSome)
+        Result updateResult = await _apiClient.UpdateTask(task, cancellationToken);
+        if (updateResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
+            updateResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

@@ -4,10 +4,9 @@ using AppCliTools.CliParametersApiClientsEdit.CliMenuCommands;
 using CrawlerConsole.ToolCommands;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
-using OneOf;
 using ParametersManagement.LibParameters;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -31,14 +30,14 @@ public sealed class RunTaskCliMenuCommand : ApiCliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        TaskDto? task = taskResult.AsT0;
+        TaskDto? task = taskResult.Value;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} does not exists", true);

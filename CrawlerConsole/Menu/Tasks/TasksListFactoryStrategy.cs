@@ -6,7 +6,8 @@ using CrawlerConsole.MenuCommands;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
+using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.Menu.Tasks;
 
@@ -23,9 +24,9 @@ public class TasksListFactoryStrategy(
         [
             .. tasks.OrderBy(o => o.TaskName).Select(task =>
                 new TaskSubMenuCliMenuCommand(logger, httpClientFactory, parametersManager, apiClient, task.TaskName))
-        ], errors =>
+        ], failure =>
         {
-            ErrorOmd.PrintErrorsOnConsole(errors);
+            failure.Error.PrintErrorsOnConsole();
             return new List<CliMenuCommand>();
         });
     }

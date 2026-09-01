@@ -4,9 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
-using OneOf;
 using SystemTools.ReCounterContracts;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
 
 namespace CrawlerConsole.ToolCommands;
 
@@ -23,13 +22,13 @@ public sealed class CancelCurrentProcessApiClientToolCommand : ApiClientToolActi
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        OneOf<bool, ErrorOmd[]> result = await CrawlerServiceApiClient.CancelCurrentProcess(cancellationToken);
-        if (result.IsT1)
+        Result<bool> result = await CrawlerServiceApiClient.CancelCurrentProcess(cancellationToken);
+        if (result.IsFailure)
         {
-            return ReturnFalseLogErrors(result.AsT1);
+            return ReturnFalseLogErrors(result.Error);
         }
 
-        if (!result.AsT0)
+        if (!result.Value)
         {
             return false;
         }
@@ -39,14 +38,14 @@ public sealed class CancelCurrentProcessApiClientToolCommand : ApiClientToolActi
 
         for (int i = 0; i < WaitForStopSeconds; i++)
         {
-            OneOf<ProgressData, ErrorOmd[]> statusResult =
+            Result<ProgressData> statusResult =
                 await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);
-            if (statusResult.IsT1)
+            if (statusResult.IsFailure)
             {
-                return ReturnFalseLogErrors(statusResult.AsT1);
+                return ReturnFalseLogErrors(statusResult.Error);
             }
 
-            if (!statusResult.AsT0.BoolData.GetValueOrDefault(ReCounterConstants.ProcessRun))
+            if (!statusResult.Value.BoolData.GetValueOrDefault(ReCounterConstants.ProcessRun))
             {
                 Console.WriteLine("Process stopped");
                 return true;

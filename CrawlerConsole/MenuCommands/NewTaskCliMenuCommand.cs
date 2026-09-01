@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -35,14 +34,14 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სახელით სხვა ამოცანა.
-        OneOf<TaskDto?, ErrorOmd[]> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
-        if (existingResult.IsT1)
+        Result<TaskDto?> existingResult = await _apiClient.GetTaskByName(newTaskName, cancellationToken);
+        if (existingResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
+            existingResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (existingResult.AsT0 is not null)
+        if (existingResult.Value is not null)
         {
             StShared.WriteErrorLine(
                 $"Task with Name {newTaskName} is already exists. cannot create task with this name. ", true);
@@ -50,11 +49,11 @@ public sealed class NewTaskCliMenuCommand : CliMenuCommand
         }
 
         //ახალი ამოცანის შექმნა და ჩაწერა ბაზაში
-        OneOf<TaskDto, ErrorOmd[]> createResult =
+        Result<TaskDto> createResult =
             await _apiClient.CreateTask(new TaskDto { TaskName = newTaskName }, cancellationToken);
-        if (createResult.IsT1)
+        if (createResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
+            createResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

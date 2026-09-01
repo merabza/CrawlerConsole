@@ -52,7 +52,7 @@ public static class CrawlerServices
             .AddTransient<IMenuCommandFactoryStrategy, CrawlerParametersEditorCliMenuCommandFactoryStrategy>()
 
             .AddSingleton<IMenuBuilder, CrawlerMenuBuilder>()
-            .AddApplication(x =>
+            .AddApp(x =>
             {
                 x.AppName = appName;
             })

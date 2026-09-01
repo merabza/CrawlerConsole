@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -25,14 +23,14 @@ public sealed class DeleteTaskCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (taskResult.AsT0 is null)
+        if (taskResult.Value is null)
         {
             StShared.WriteErrorLine($"Task {_taskName} not found", true);
             return false;
@@ -44,10 +42,10 @@ public sealed class DeleteTaskCliMenuCommand : CliMenuCommand
         }
 
         //ამოცანის წაშლა ბაზიდან Start Point-ებთან ერთად (cascade)
-        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteTask(_taskName, cancellationToken);
-        if (deleteResult.IsSome)
+        Result deleteResult = await _apiClient.DeleteTask(_taskName, cancellationToken);
+        if (deleteResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
+            deleteResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

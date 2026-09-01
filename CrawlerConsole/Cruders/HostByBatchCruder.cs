@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliParameters;
 using AppCliTools.CliParameters.Cruders;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
@@ -27,9 +26,9 @@ public sealed class HostByBatchCruder : Cruder
     public List<string> GetHostNamesByBatch()
     {
         return _apiClient.GetHostStartUrlNamesByBatch(_batch.BatchName).GetAwaiter().GetResult().Match(names => names,
-            errors =>
+            failure =>
             {
-                ErrorOmd.PrintErrorsOnConsole(errors);
+                failure.Error.PrintErrorsOnConsole();
                 return [];
             });
     }
@@ -53,11 +52,11 @@ public sealed class HostByBatchCruder : Cruder
         CancellationToken cancellationToken = default)
     {
         var uri = new Uri(recordKey);
-        Option<ErrorOmd[]> removeResult =
+        Result removeResult =
             await _apiClient.RemoveHostByBatch(_batch.BatchName, uri.Scheme, uri.Host, cancellationToken);
-        if (removeResult.IsSome)
+        if (removeResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])removeResult);
+            removeResult.Error.PrintErrorsOnConsole();
         }
     }
 
@@ -65,12 +64,12 @@ public sealed class HostByBatchCruder : Cruder
         CancellationToken cancellationToken = default)
     {
         var uri = new Uri(recordKey);
-        Option<ErrorOmd[]> addResult = await _apiClient.AddHostByBatch(
+        Result addResult = await _apiClient.AddHostByBatch(
             new HostByBatchRequest { BatchName = _batch.BatchName, SchemeName = uri.Scheme, HostName = uri.Host },
             cancellationToken);
-        if (addResult.IsSome)
+        if (addResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])addResult);
+            addResult.Error.PrintErrorsOnConsole();
         }
     }
 }

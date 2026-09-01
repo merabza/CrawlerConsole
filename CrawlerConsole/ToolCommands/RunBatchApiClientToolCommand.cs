@@ -2,10 +2,8 @@
 using System.Threading.Tasks;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
 using Microsoft.Extensions.Logging;
-using OneOf;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
 
 namespace CrawlerConsole.ToolCommands;
 
@@ -27,27 +25,27 @@ public sealed class RunBatchApiClientToolCommand : ApiClientToolAction
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხი ენდპოინტს პარამეტრად გადაეცემა
-        OneOf<CrawlerPreCheckResult, ErrorOmd[]> preCheckResult =
+        Result<CrawlerPreCheckResult> preCheckResult =
             await CrawlerServiceApiClient.PreCheck(_batchName, null, cancellationToken);
-        if (preCheckResult.IsT1)
+        if (preCheckResult.IsFailure)
         {
-            return ReturnFalseLogErrors(preCheckResult.AsT1);
+            return ReturnFalseLogErrors(preCheckResult.Error);
         }
 
         int newPartsCreateLimit = 0;
-        if (!preCheckResult.AsT0.AutoCreateNextPart)
+        if (!preCheckResult.Value.AutoCreateNextPart)
         {
             newPartsCreateLimit = Inputer.InputInt(
                 $"Opened part not found for batch {_batchName}. Auto-create new parts count (0 = no, -1 = unlimited)",
                 0);
         }
 
-        Option<ErrorOmd[]> runBatchResult = await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit,
+        Result runBatchResult = await CrawlerServiceApiClient.RunBatch(_batchName, newPartsCreateLimit,
             ProgressDelaySeconds, cancellationToken);
 
-        if (runBatchResult.IsSome)
+        if (runBatchResult.IsFailure)
         {
-            return ReturnFalseLogErrors((ErrorOmd[])runBatchResult);
+            return ReturnFalseLogErrors(runBatchResult.Error);
         }
 
         //ბაჩი გაეშვა, ავტომატურად ჩავრთოთ მონიტორინგი

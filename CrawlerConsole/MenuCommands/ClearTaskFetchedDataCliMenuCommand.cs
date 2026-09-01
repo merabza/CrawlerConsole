@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -25,14 +23,14 @@ public sealed class ClearTaskFetchedDataCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (taskResult.AsT0 is null)
+        if (taskResult.Value is null)
         {
             StShared.WriteErrorLine($"Task {_taskName} not found", true);
             return false;
@@ -46,10 +44,10 @@ public sealed class ClearTaskFetchedDataCliMenuCommand : CliMenuCommand
         }
 
         //ტასკის მიერ მოქაჩული ინფორმაციის გასუფთავება ბაზაში (Batch თავისი შვილებით და ექსკლუზიური Urls-ები)
-        Option<ErrorOmd[]> clearResult = await _apiClient.ClearTaskFetchedData(_taskName, cancellationToken);
-        if (clearResult.IsSome)
+        Result clearResult = await _apiClient.ClearTaskFetchedData(_taskName, cancellationToken);
+        if (clearResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])clearResult);
+            clearResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

@@ -4,9 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
-using OneOf;
 using SystemTools.ReCounterContracts;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
 
 namespace CrawlerConsole.ToolCommands;
 
@@ -22,14 +21,14 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        OneOf<ProgressData, ErrorOmd[]> statusResult =
+        Result<ProgressData> statusResult =
             await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);
-        if (statusResult.IsT1)
+        if (statusResult.IsFailure)
         {
-            return ReturnFalseLogErrors(statusResult.AsT1);
+            return ReturnFalseLogErrors(statusResult.Error);
         }
 
-        if (!statusResult.AsT0.BoolData.GetValueOrDefault(ReCounterConstants.ProcessRun))
+        if (!statusResult.Value.BoolData.GetValueOrDefault(ReCounterConstants.ProcessRun))
         {
             Console.WriteLine("Process is not running");
             return true;

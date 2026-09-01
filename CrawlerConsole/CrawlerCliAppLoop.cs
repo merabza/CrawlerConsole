@@ -179,14 +179,14 @@
 //                        databaseServerConnectionData.WindowsNtIntegratedSecurity,
 //                        databaseServerConnectionData.ServerUser, databaseServerConnectionData.ServerPass, true);
 
-//                    if (dbAuthSettingsCreateResult.IsT1)
+//                    if (dbAuthSettingsCreateResult.IsFailure)
 //                    {
-//                        ErrorOmd.PrintErrorsOnConsole(dbAuthSettingsCreateResult.AsT1);
+//                        ErrorOmd.PrintErrorsOnConsole(dbAuthSettingsCreateResult.Error);
 //                        return false;
 //                    }
 
 //                    DbClient? dc = DbClientFactory.GetDbClient(_logger, true, dataProvider.Value,
-//                        databaseServerConnectionData.ServerAddress, dbAuthSettingsCreateResult.AsT0,
+//                        databaseServerConnectionData.ServerAddress, dbAuthSettingsCreateResult.Value,
 //                        databaseServerConnectionData.TrustServerCertificate, "Crawler",
 //                        databaseServerConnectionData.DatabaseName);
 
@@ -196,7 +196,7 @@
 //                        return false;
 //                    }
 
-//                    Option<ErrorOmd[]> testConnectionResult = dc.TestConnection(true, token).Result;
+//                    Result testConnectionResult = dc.TestConnection(true, token).Result;
 //                    if (testConnectionResult.IsNone)
 //                    {
 //                        return true;

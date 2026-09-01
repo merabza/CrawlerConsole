@@ -4,10 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
@@ -28,9 +26,9 @@ public sealed class TaskCruder : Cruder
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
         return _apiClient.GetTasksList().GetAwaiter().GetResult().Match(
-            tasks => tasks.ToDictionary(k => k.TaskName, ItemData (v) => v), errors =>
+            tasks => tasks.ToDictionary(k => k.TaskName, ItemData (v) => v), failure =>
             {
-                ErrorOmd.PrintErrorsOnConsole(errors);
+                failure.Error.PrintErrorsOnConsole();
                 return new Dictionary<string, ItemData>();
             });
     }
@@ -48,14 +46,14 @@ public sealed class TaskCruder : Cruder
             return;
         }
 
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(recordKey, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(recordKey, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return;
         }
 
-        TaskDto? task = taskResult.AsT0;
+        TaskDto? task = taskResult.Value;
         if (task is null)
         {
             StShared.WriteErrorLine($"task {recordKey} not found", true);
@@ -64,10 +62,10 @@ public sealed class TaskCruder : Cruder
 
         task.TaskName = newTask.TaskName;
 
-        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateTask(task, cancellationToken);
-        if (updateResult.IsSome)
+        Result updateResult = await _apiClient.UpdateTask(task, cancellationToken);
+        if (updateResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
+            updateResult.Error.PrintErrorsOnConsole();
         }
     }
 
@@ -87,20 +85,20 @@ public sealed class TaskCruder : Cruder
                 [.. newTask.StartPoints.Select(sp => new TaskStartPointDto { StartPoint = sp.StartPoint })]
         };
 
-        OneOf<TaskDto, ErrorOmd[]> createResult = await _apiClient.CreateTask(task, cancellationToken);
-        if (createResult.IsT1)
+        Result<TaskDto> createResult = await _apiClient.CreateTask(task, cancellationToken);
+        if (createResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
+            createResult.Error.PrintErrorsOnConsole();
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteTask(recordKey, cancellationToken);
-        if (deleteResult.IsSome)
+        Result deleteResult = await _apiClient.DeleteTask(recordKey, cancellationToken);
+        if (deleteResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
+            deleteResult.Error.PrintErrorsOnConsole();
         }
     }
 

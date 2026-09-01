@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -25,14 +24,14 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        TaskDto? task = taskResult.AsT0;
+        TaskDto? task = taskResult.Value;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} not found", true);
@@ -50,15 +49,15 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
         }
 
         //გადავამოწმოთ ხომ არ არსებობს იგივე სტარტ პოინტი
-        OneOf<TaskStartPointDto?, ErrorOmd[]> existingResult =
+        Result<TaskStartPointDto?> existingResult =
             await _apiClient.GetStartPoint(task.TaskId, newStartPoint, cancellationToken);
-        if (existingResult.IsT1)
+        if (existingResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(existingResult.AsT1);
+            existingResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (existingResult.AsT0 is not null)
+        if (existingResult.Value is not null)
         {
             StShared.WriteErrorLine(
                 $"Start Point with Name {newStartPoint} is already exists. cannot create Start Point with this name. ",
@@ -67,11 +66,11 @@ public sealed class NewStartPointCliMenuCommand : CliMenuCommand
         }
 
         //ახალი სტარტ პოინტის ჩაწერა ბაზაში
-        OneOf<TaskStartPointDto, ErrorOmd[]> addResult = await _apiClient.AddStartPoint(
+        Result<TaskStartPointDto> addResult = await _apiClient.AddStartPoint(
             new AddStartPointRequest { TaskId = task.TaskId, StartPoint = newStartPoint }, cancellationToken);
-        if (addResult.IsT1)
+        if (addResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(addResult.AsT1);
+            addResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

@@ -8,9 +8,8 @@ using AppCliTools.LibDataInput;
 using CrawlerConsole.Cruders;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
-using OneOf;
 using ParametersManagement.LibParameters;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -72,8 +71,8 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         var newStartPointCommand = new NewStartPointCliMenuCommand(_apiClient, Name);
         taskSubMenuSet.AddMenuItem(newStartPointCommand);
 
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = _apiClient.GetTaskByName(Name).GetAwaiter().GetResult();
-        TaskDto? task = taskResult.IsT0 ? taskResult.AsT0 : null;
+        Result<TaskDto?> taskResult = _apiClient.GetTaskByName(Name).GetAwaiter().GetResult();
+        TaskDto? task = taskResult.IsSuccess ? taskResult.Value : null;
         if (task is not null)
         {
             foreach (TaskStartPointDto startPoint in task.StartPoints.OrderBy(o => o.StartPoint))

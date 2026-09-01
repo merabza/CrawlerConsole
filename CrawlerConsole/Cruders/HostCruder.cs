@@ -7,10 +7,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliParameters.Cruders;
 using AppCliTools.CliParameters.FieldEditors;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
@@ -27,9 +25,9 @@ public sealed class HostCruder : Cruder
     protected override Dictionary<string, ItemData> GetCrudersDictionary()
     {
         return _apiClient.GetHostsList().GetAwaiter().GetResult().Match(
-            hosts => hosts.ToDictionary(k => k.HostName, ItemData (v) => v), errors =>
+            hosts => hosts.ToDictionary(k => k.HostName, ItemData (v) => v), failure =>
             {
-                ErrorOmd.PrintErrorsOnConsole(errors);
+                failure.Error.PrintErrorsOnConsole();
                 return new Dictionary<string, ItemData>();
             });
     }
@@ -47,14 +45,14 @@ public sealed class HostCruder : Cruder
             return;
         }
 
-        OneOf<HostDto?, ErrorOmd[]> hostResult = await _apiClient.GetHostByName(recordKey, cancellationToken);
-        if (hostResult.IsT1)
+        Result<HostDto?> hostResult = await _apiClient.GetHostByName(recordKey, cancellationToken);
+        if (hostResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(hostResult.AsT1);
+            hostResult.Error.PrintErrorsOnConsole();
             return;
         }
 
-        HostDto? host = hostResult.AsT0;
+        HostDto? host = hostResult.Value;
         if (host is null)
         {
             StShared.WriteErrorLine($"host {recordKey} not found", true);
@@ -63,10 +61,10 @@ public sealed class HostCruder : Cruder
 
         host.HostName = newHost.HostName;
 
-        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateHost(host, cancellationToken);
-        if (updateResult.IsSome)
+        Result updateResult = await _apiClient.UpdateHost(host, cancellationToken);
+        if (updateResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
+            updateResult.Error.PrintErrorsOnConsole();
         }
     }
 
@@ -78,20 +76,20 @@ public sealed class HostCruder : Cruder
             return;
         }
 
-        OneOf<HostDto, ErrorOmd[]> createResult = await _apiClient.CreateHost(newHost, cancellationToken);
-        if (createResult.IsT1)
+        Result<HostDto> createResult = await _apiClient.CreateHost(newHost, cancellationToken);
+        if (createResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
+            createResult.Error.PrintErrorsOnConsole();
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteHost(recordKey, cancellationToken);
-        if (deleteResult.IsSome)
+        Result deleteResult = await _apiClient.DeleteHost(recordKey, cancellationToken);
+        if (deleteResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
+            deleteResult.Error.PrintErrorsOnConsole();
         }
     }
 

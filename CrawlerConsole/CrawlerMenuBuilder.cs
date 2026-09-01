@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.CliTools.Services.MenuBuilder;
 using CrawlerConsole.Menu;
@@ -12,10 +13,9 @@ using CrawlerConsole.Menu.Schemes;
 using CrawlerConsole.Menu.Tasks;
 using CrawlerConsoleData.Models;
 using Microsoft.Extensions.Logging;
-using OneOf;
 using ParametersManagement.LibParameters;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 using SystemTools.TestApiContracts;
 
 namespace CrawlerConsole;
@@ -26,25 +26,32 @@ public sealed class CrawlerMenuBuilder(
     IHttpClientFactory httpClientFactory,
     ILogger<CrawlerMenuBuilder> logger) : IMenuBuilder
 {
-    public CliMenuSet BuildMainMenu()
+    public Task<CliMenuSet?> BuildMainMenu()
     {
-        List<string> excludeList = [];
-
-        if (CheckConnection())
+        try
         {
-            return CliMenuSetFactory.CreateMenuSet("Main Menu",
-                [.. MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList)], serviceProvider, true);
+            List<string> excludeList = [];
+
+            if (CheckConnection())
+            {
+                return Task.FromResult(CliMenuSetFactory.CreateMenuSet("Main Menu",
+                    [.. MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList)], serviceProvider, true));
+            }
+
+            excludeList.Add(nameof(HostListCliMenuCommandFactoryStrategy));
+            excludeList.Add(nameof(SchemeListCliMenuCommandFactoryStrategy));
+            excludeList.Add(nameof(BatchListCliMenuCommandFactoryStrategy));
+            excludeList.Add(nameof(NewTaskCliMenuCommandFactoryStrategy));
+            excludeList.Add(nameof(TasksListFactoryStrategy));
+
+            //მთავარი მენიუს ჩატვირთვა
+            return Task.FromResult(CliMenuSetFactory.CreateMenuSet("Main Menu",
+                [.. MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList)], serviceProvider, true));
         }
-
-        excludeList.Add(nameof(HostListCliMenuCommandFactoryStrategy));
-        excludeList.Add(nameof(SchemeListCliMenuCommandFactoryStrategy));
-        excludeList.Add(nameof(BatchListCliMenuCommandFactoryStrategy));
-        excludeList.Add(nameof(NewTaskCliMenuCommandFactoryStrategy));
-        excludeList.Add(nameof(TasksListFactoryStrategy));
-
-        //მთავარი მენიუს ჩატვირთვა
-        return CliMenuSetFactory.CreateMenuSet("Main Menu",
-            [.. MenuData.MainMenuCommandFactoryStrategyNames.Except(excludeList)], serviceProvider, true);
+        catch (Exception exception)
+        {
+            return Task.FromException<CliMenuSet?>(exception);
+        }
     }
 
     private bool CheckConnection()
@@ -65,14 +72,14 @@ public sealed class CrawlerMenuBuilder(
             using var cts = new CancellationTokenSource();
             CancellationToken token = cts.Token;
             token.ThrowIfCancellationRequested();
-            OneOf<bool, ErrorOmd[]> testConnectionResult = apiClient.TestConnection(token).Result;
+            Result<bool> testConnectionResult = apiClient.TestConnection(token).Result;
 
-            if (testConnectionResult.IsT0)
+            if (testConnectionResult.IsSuccess)
             {
-                return testConnectionResult.AsT0;
+                return testConnectionResult.Value;
             }
 
-            ErrorOmd.PrintErrorsOnConsole(testConnectionResult.AsT1);
+            testConnectionResult.Error.PrintErrorsOnConsole();
             return false;
         }
         catch (OperationCanceledException)

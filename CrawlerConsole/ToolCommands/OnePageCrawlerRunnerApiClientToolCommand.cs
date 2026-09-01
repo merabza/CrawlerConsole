@@ -3,10 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
 using Microsoft.Extensions.Logging;
-using OneOf;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
 
 namespace CrawlerConsole.ToolCommands;
 
@@ -30,14 +28,14 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
         //კითხვის დასმა-არდასმა აქ, კონსოლის მხარეს გადაწყდება; პასუხები ენდპოინტს პარამეტრად გადაეცემა
-        OneOf<CrawlerPreCheckResult, ErrorOmd[]> preCheckResult =
+        Result<CrawlerPreCheckResult> preCheckResult =
             await CrawlerServiceApiClient.PreCheck(_taskName, _strUrl, cancellationToken);
-        if (preCheckResult.IsT1)
+        if (preCheckResult.IsFailure)
         {
-            return ReturnFalseLogErrors(preCheckResult.AsT1);
+            return ReturnFalseLogErrors(preCheckResult.Error);
         }
 
-        CrawlerPreCheckResult preCheck = preCheckResult.AsT0;
+        CrawlerPreCheckResult preCheck = preCheckResult.Value;
 
         bool deleteContentForReanalyze = preCheck.PageAlreadyAnalyzed && Inputer.InputBool(
             $"The page {_strUrl} already analyzed. Do you wont to delete Content data for reanalyze", true, false);
@@ -47,7 +45,7 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
             ? 1
             : 0;
 
-        Option<ErrorOmd[]> testOnePageResult = await CrawlerServiceApiClient.TestOnePage(
+        Result testOnePageResult = await CrawlerServiceApiClient.TestOnePage(
             new TestOnePageRequest
             {
                 Url = _strUrl,
@@ -57,6 +55,6 @@ public sealed class OnePageCrawlerRunnerApiClientToolCommand : ApiClientToolActi
                 ProgressDelaySeconds = ProgressDelaySeconds
             }, cancellationToken);
 
-        return testOnePageResult.IsNone || ReturnFalseLogErrors((ErrorOmd[])testOnePageResult);
+        return testOnePageResult.IsSuccess || ReturnFalseLogErrors(testOnePageResult.Error);
     }
 }

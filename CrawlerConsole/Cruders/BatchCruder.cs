@@ -10,11 +10,9 @@ using AppCliTools.CliParameters.FieldEditors;
 using CrawlerConsole.MenuCommands;
 using CrawlerConsoleData.Models;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
 using Microsoft.Extensions.Logging;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.Cruders;
 
@@ -39,9 +37,9 @@ public sealed class BatchCruder : Cruder
 
     private List<BatchDto> GetBatches()
     {
-        return _apiClient.GetBatchesList().GetAwaiter().GetResult().Match(batches => batches, errors =>
+        return _apiClient.GetBatchesList().GetAwaiter().GetResult().Match(batches => batches, failure =>
         {
-            ErrorOmd.PrintErrorsOnConsole(errors);
+            failure.Error.PrintErrorsOnConsole();
             return [];
         });
     }
@@ -64,14 +62,14 @@ public sealed class BatchCruder : Cruder
             return;
         }
 
-        OneOf<BatchDto?, ErrorOmd[]> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
-        if (batchResult.IsT1)
+        Result<BatchDto> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
+        if (batchResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(batchResult.AsT1);
+            batchResult.Error.PrintErrorsOnConsole();
             return;
         }
 
-        BatchDto? batch = batchResult.AsT0;
+        BatchDto? batch = batchResult.Value;
         if (batch is null)
         {
             StShared.WriteErrorLine($"batch {recordKey} not found", true);
@@ -80,10 +78,10 @@ public sealed class BatchCruder : Cruder
 
         batch.BatchName = newBatch.BatchName;
 
-        Option<ErrorOmd[]> updateResult = await _apiClient.UpdateBatch(batch, cancellationToken);
-        if (updateResult.IsSome)
+        Result updateResult = await _apiClient.UpdateBatch(batch, cancellationToken);
+        if (updateResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])updateResult);
+            updateResult.Error.PrintErrorsOnConsole();
         }
     }
 
@@ -95,20 +93,20 @@ public sealed class BatchCruder : Cruder
             return;
         }
 
-        OneOf<BatchDto, ErrorOmd[]> createResult = await _apiClient.CreateBatch(newBatch, cancellationToken);
-        if (createResult.IsT1)
+        Result<BatchDto> createResult = await _apiClient.CreateBatch(newBatch, cancellationToken);
+        if (createResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(createResult.AsT1);
+            createResult.Error.PrintErrorsOnConsole();
         }
     }
 
     protected override async ValueTask RemoveRecordWithKey(string recordKey,
         CancellationToken cancellationToken = default)
     {
-        Option<ErrorOmd[]> deleteResult = await _apiClient.DeleteBatch(recordKey, cancellationToken);
-        if (deleteResult.IsSome)
+        Result deleteResult = await _apiClient.DeleteBatch(recordKey, cancellationToken);
+        if (deleteResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
+            deleteResult.Error.PrintErrorsOnConsole();
         }
     }
 

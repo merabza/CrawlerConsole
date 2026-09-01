@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using AppCliTools.CliMenu;
 using AppCliTools.LibDataInput;
 using CrawlerServiceShared.Contracts;
-using LanguageExt;
-using OneOf;
+using SystemTools.SharedKernel;
 using SystemTools.SystemToolsShared;
-using SystemTools.SystemToolsShared.Errors;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -27,29 +25,29 @@ public sealed class DeleteStartPointCliMenuCommand : CliMenuCommand
 
     protected override async ValueTask<bool> RunBody(CancellationToken cancellationToken = default)
     {
-        OneOf<TaskDto?, ErrorOmd[]> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
-        if (taskResult.IsT1)
+        Result<TaskDto?> taskResult = await _apiClient.GetTaskByName(_taskName, cancellationToken);
+        if (taskResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(taskResult.AsT1);
+            taskResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        TaskDto? task = taskResult.AsT0;
+        TaskDto? task = taskResult.Value;
         if (task is null)
         {
             StShared.WriteErrorLine($"Task with name {_taskName} is not found", true);
             return false;
         }
 
-        OneOf<TaskStartPointDto?, ErrorOmd[]> startPointResult =
+        Result<TaskStartPointDto?> startPointResult =
             await _apiClient.GetStartPoint(task.TaskId, _startPoint, cancellationToken);
-        if (startPointResult.IsT1)
+        if (startPointResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole(startPointResult.AsT1);
+            startPointResult.Error.PrintErrorsOnConsole();
             return false;
         }
 
-        if (startPointResult.AsT0 is null)
+        if (startPointResult.Value is null)
         {
             StShared.WriteErrorLine($"Start Point {_startPoint} in Task {_taskName} is not found", true);
             return false;
@@ -60,11 +58,11 @@ public sealed class DeleteStartPointCliMenuCommand : CliMenuCommand
             return false;
         }
 
-        Option<ErrorOmd[]> deleteResult =
+        Result deleteResult =
             await _apiClient.DeleteStartPoint(task.TaskId, _startPoint, cancellationToken);
-        if (deleteResult.IsSome)
+        if (deleteResult.IsFailure)
         {
-            ErrorOmd.PrintErrorsOnConsole((ErrorOmd[])deleteResult);
+            deleteResult.Error.PrintErrorsOnConsole();
             return false;
         }
 

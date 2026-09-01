@@ -3,7 +3,8 @@ using System.Threading.Tasks;
 using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
 using SystemTools.BackgroundTasks;
-using SystemTools.SystemToolsShared.Errors;
+using SystemTools.SharedKernel;
+using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.ToolCommands;
 
@@ -33,10 +34,10 @@ public /*open*/ class ApiClientToolAction : ToolAction
     //    return new CrawlerServiceApiClient(_logger, HttpClientFactory, par.Api.Server, par.Api.ApiKey, true);
     //}
 
-    protected bool ReturnFalseLogErrors(ErrorOmd[] errors)
+    protected bool ReturnFalseLogErrors(Error error)
     {
         _logger.LogError("Action {ToolActionName} finished with errors", ToolActionName);
-        ErrorOmd.PrintErrorsOnConsole(errors);
+        error.PrintErrorsOnConsole();
         return false;
     }
 
