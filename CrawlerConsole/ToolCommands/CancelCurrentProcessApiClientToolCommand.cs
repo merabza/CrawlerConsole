@@ -30,6 +30,8 @@ public sealed class CancelCurrentProcessApiClientToolCommand : ApiClientToolActi
 
         if (!result.Value)
         {
+            //სერვერზე გასაუქმებელი პროცესი არ არის
+            Console.WriteLine("No running process to cancel");
             return false;
         }
 

@@ -10,6 +10,7 @@ using CrawlerServiceShared.Contracts;
 using Microsoft.Extensions.Logging;
 using ParametersManagement.LibParameters;
 using SystemTools.SharedKernel;
+using SystemTools.SystemToolsShared;
 
 namespace CrawlerConsole.MenuCommands;
 
@@ -72,6 +73,12 @@ public sealed class TaskSubMenuCliMenuCommand : CliMenuCommand
         taskSubMenuSet.AddMenuItem(newStartPointCommand);
 
         Result<TaskDto?> taskResult = _apiClient.GetTaskByName(Name).GetAwaiter().GetResult();
+        if (taskResult.IsFailure)
+        {
+            //შეცდომა ჩუმად არ უნდა დაიკარგოს — საწყისი წერტილების სია ვერ ჩაიტვირთა
+            taskResult.Error.PrintErrorsOnConsole();
+        }
+
         TaskDto? task = taskResult.IsSuccess ? taskResult.Value : null;
         if (task is not null)
         {

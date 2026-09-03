@@ -62,7 +62,7 @@ public sealed class BatchCruder : Cruder
             return;
         }
 
-        Result<BatchDto> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
+        Result<BatchDto?> batchResult = await _apiClient.GetBatchByName(recordKey, cancellationToken);
         if (batchResult.IsFailure)
         {
             batchResult.Error.PrintErrorsOnConsole();
@@ -120,7 +120,12 @@ public sealed class BatchCruder : Cruder
         base.FillDetailsSubMenu(itemSubMenuSet, itemName);
 
         Dictionary<string, BatchDto> batches = GetBatches().ToDictionary(k => k.BatchName, v => v);
-        BatchDto batch = batches[itemName];
+        if (!batches.TryGetValue(itemName, out BatchDto? batch))
+        {
+            //სია სერვისიდან ვერ წამოვიდა ან ასეთი Batch აღარ არსებობს — დეტალების ქვემენიუ არ ივსება
+            StShared.WriteErrorLine($"Batch {itemName} not found", true, null, false);
+            return;
+        }
 
         itemSubMenuSet.AddMenuItem(new BatchTaskCliMenuCommand(_logger, _httpClientFactory, _apiClient, _par, batch));
 
