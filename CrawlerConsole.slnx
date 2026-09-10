@@ -8,7 +8,6 @@
     <Project Path="../AppCliTools/AppCliTools.CliMenu/AppCliTools.CliMenu.csproj" />
     <Project Path="../AppCliTools/AppCliTools.CliParameters/AppCliTools.CliParameters.csproj" />
     <Project Path="../AppCliTools/AppCliTools.CliParametersApiClientsEdit/AppCliTools.CliParametersApiClientsEdit.csproj" />
-    <Project Path="../AppCliTools/AppCliTools.CliParametersDataEdit/AppCliTools.CliParametersDataEdit.csproj" />
     <Project Path="../AppCliTools/AppCliTools.CliParametersEdit/AppCliTools.CliParametersEdit.csproj" />
     <Project Path="../AppCliTools/AppCliTools.CliTools/AppCliTools.CliTools.csproj" />
     <Project Path="../AppCliTools/AppCliTools.LibDataInput/AppCliTools.LibDataInput.csproj" />
@@ -22,16 +21,8 @@
   <Folder Name="/CrawlerServiceShared/">
     <Project Path="../CrawlerServiceShared/CrawlerServiceShared.Contracts/CrawlerServiceShared.Contracts.csproj" />
   </Folder>
-  <Folder Name="/DatabaseTools/">
-    <Project Path="../DatabaseTools/DatabaseTools.DbTools/DatabaseTools.DbTools.csproj" />
-    <Project Path="../DatabaseTools/DatabaseTools.DbToolsFactory/DatabaseTools.DbToolsFactory.csproj" />
-    <Project Path="../DatabaseTools/DatabaseTools.OleDbTools/DatabaseTools.OleDbTools.csproj" />
-    <Project Path="../DatabaseTools/DatabaseTools.SqLiteDbTools/DatabaseTools.SqLiteDbTools.csproj" />
-    <Project Path="../DatabaseTools/DatabaseTools.SqlServerDbTools/DatabaseTools.SqlServerDbTools.csproj" />
-  </Folder>
   <Folder Name="/ParametersManagement/">
     <Project Path="../ParametersManagement/ParametersManagement.LibApiClientParameters/ParametersManagement.LibApiClientParameters.csproj" />
-    <Project Path="../ParametersManagement/ParametersManagement.LibDatabaseParameters/ParametersManagement.LibDatabaseParameters.csproj" />
     <Project Path="../ParametersManagement/ParametersManagement.LibFileParameters/ParametersManagement.LibFileParameters.csproj" />
     <Project Path="../ParametersManagement/ParametersManagement.LibParameters/ParametersManagement.LibParameters.csproj" />
   </Folder>
@@ -43,21 +34,15 @@
   <Folder Name="/SystemTools/">
     <Project Path="../SystemTools/SystemTools.ApiContracts/SystemTools.ApiContracts.csproj" />
     <Project Path="../SystemTools/SystemTools.BackgroundTasks/SystemTools.BackgroundTasks.csproj" />
-    <Project Path="../SystemTools/SystemTools.DatabaseToolsShared/SystemTools.DatabaseToolsShared.csproj" />
     <Project Path="../SystemTools/SystemTools.ReCounterContracts/SystemTools.ReCounterContracts.csproj" />
     <Project Path="../SystemTools/SystemTools.SerilogStuff/SystemTools.SerilogStuff.csproj" />
-    <Project Path="../SystemTools/SystemTools.StringMessagesApiContracts/SystemTools.StringMessagesApiContracts.csproj" />
+    <Project Path="../SystemTools/SystemTools.SharedKernel/SystemTools.SharedKernel.csproj" />
     <Project Path="../SystemTools/SystemTools.SystemToolsShared/SystemTools.SystemToolsShared.csproj" />
     <Project Path="../SystemTools/SystemTools.TestApiContracts/SystemTools.TestApiContracts.csproj" />
-    <Project Path="SystemTools.DependencyInjection/SystemTools.DependencyInjection.csproj" Id="b9ede85c-247e-4752-9ada-c8c89ff441ef" />
   </Folder>
   <Folder Name="/ToolsManagement/">
     <Project Path="../ToolsManagement/ToolsManagement.ApiClientsManagement/ToolsManagement.ApiClientsManagement.csproj" />
-    <Project Path="../ToolsManagement/ToolsManagement.DatabasesManagement/ToolsManagement.DatabasesManagement.csproj" />
     <Project Path="../ToolsManagement/ToolsManagement.FileManagersMain/ToolsManagement.FileManagersMain.csproj" />
-  </Folder>
-  <Folder Name="/WebAgentContracts/">
-    <Project Path="../WebAgentContracts/WebAgentContracts.WebAgentDatabasesApiContracts/WebAgentContracts.WebAgentDatabasesApiContracts.csproj" />
   </Folder>
   <Project Path="CrawlerConsole/CrawlerConsole.csproj" />
   <Project Path="CrawlerConsoleData/CrawlerConsoleData.csproj" Id="db141225-5e0e-403b-a6e8-0a286fc14e05" />

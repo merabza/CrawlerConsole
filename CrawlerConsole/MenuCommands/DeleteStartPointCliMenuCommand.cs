@@ -58,8 +58,7 @@ public sealed class DeleteStartPointCliMenuCommand : CliMenuCommand
             return false;
         }
 
-        Result deleteResult =
-            await _apiClient.DeleteStartPoint(task.TaskId, _startPoint, cancellationToken);
+        Result deleteResult = await _apiClient.DeleteStartPoint(task.TaskId, _startPoint, cancellationToken);
         if (deleteResult.IsFailure)
         {
             deleteResult.Error.PrintErrorsOnConsole();

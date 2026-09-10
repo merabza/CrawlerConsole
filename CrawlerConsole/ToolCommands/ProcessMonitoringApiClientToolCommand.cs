@@ -21,8 +21,7 @@ public sealed class ProcessMonitoringApiClientToolCommand : ApiClientToolAction
 
     protected override async ValueTask<bool> RunAction(CancellationToken cancellationToken = default)
     {
-        Result<ProgressData> statusResult =
-            await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);
+        Result<ProgressData> statusResult = await CrawlerServiceApiClient.GetCurrentProcessStatus(cancellationToken);
         if (statusResult.IsFailure)
         {
             return ReturnFalseLogErrors(statusResult.Error);

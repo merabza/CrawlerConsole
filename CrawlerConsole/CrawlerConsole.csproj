@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersApiClientsEdit\AppCliTools.CliParametersApiClientsEdit.csproj" />
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersEdit\AppCliTools.CliParametersEdit.csproj" />
+    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParameters\AppCliTools.CliParameters.csproj" />
+    <ProjectReference Include="..\..\ParametersManagement\ParametersManagement.LibApiClientParameters\ParametersManagement.LibApiClientParameters.csproj" />
     <ProjectReference Include="..\CrawlerConsoleData\CrawlerConsoleData.csproj" />
-    <ProjectReference Include="..\SystemTools.DependencyInjection\SystemTools.DependencyInjection.csproj" />
-    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersDataEdit\AppCliTools.CliParametersDataEdit.csproj" />
     <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliTools\AppCliTools.CliTools.csproj" />
     <ProjectReference Include="..\..\CrawlerServiceShared\CrawlerServiceShared.Contracts\CrawlerServiceShared.Contracts.csproj" />
     <ProjectReference Include="..\..\SystemTools\SystemTools.SerilogStuff\SystemTools.SerilogStuff.csproj" />
