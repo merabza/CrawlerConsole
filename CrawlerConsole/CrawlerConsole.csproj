@@ -15,6 +15,10 @@
     <Folder Include="ApiClientToolCommands\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>

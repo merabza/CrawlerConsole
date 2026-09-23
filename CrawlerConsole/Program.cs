@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using AppCliTools.CliParameters;
 using AppCliTools.CliTools;
+using CrawlerConsole;
 using CrawlerConsole.DependencyInjection;
 using CrawlerConsoleData.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,15 +16,25 @@ try
     Console.WriteLine("Loading...");
 
     const string appName = "Crawler Console";
-    var argParser = new ArgumentsParser<CrawlerConsoleParameters>(args, appName);
 
-    switch (argParser.Analysis())
+    var argumentsAnalyzer = new ArgumentsAnalyzer();
+
+    if (!await argumentsAnalyzer.Analysis(args))
+    {
+        return argumentsAnalyzer.ExitCode;
+    }
+
+    var argParser = new ParametersService<CrawlerConsoleParameters>(appName);
+
+    switch (argParser.Analysis(argumentsAnalyzer.ParametersFileName))
     {
         case EParseResult.Ok:
             break;
-        case EParseResult.Usage:
+        case EParseResult.ShowHelp:
+            argumentsAnalyzer.ShowHelp();
             return 1;
         case EParseResult.ParseError:
+            StShared.WriteErrorLine($"File {argumentsAnalyzer.ParametersFileName} is not valid", true, logger, false);
             return 2;
         default:
             throw new SwitchExpressionException();
