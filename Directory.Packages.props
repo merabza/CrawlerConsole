@@ -4,12 +4,12 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="CrawlerServiceShared.Contracts" Version="1.0.9790.30589" />
+    <PackageVersion Include="CrawlerServiceShared.Contracts" Version="1.0.9790.31389" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
-    <PackageVersion Include="ParametersManagement.LibApiClientParameters" Version="1.0.9790.30721" />
-    <PackageVersion Include="ParametersManagement.LibDatabaseParameters" Version="1.0.9790.30721" />
-    <PackageVersion Include="ParametersManagement.LibFileParameters" Version="1.0.9790.30721" />
-    <PackageVersion Include="ParametersManagement.LibParameters" Version="1.0.9790.30721" />
+    <PackageVersion Include="ParametersManagement.LibApiClientParameters" Version="1.0.9790.31419" />
+    <PackageVersion Include="ParametersManagement.LibDatabaseParameters" Version="1.0.9790.31419" />
+    <PackageVersion Include="ParametersManagement.LibFileParameters" Version="1.0.9790.31419" />
+    <PackageVersion Include="ParametersManagement.LibParameters" Version="1.0.9790.31419" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.35.0.4138" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
@@ -18,7 +18,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
     <PackageVersion Include="System.CommandLine" Version="2.0.13" />
-    <PackageVersion Include="SystemTools.SerilogStuff" Version="1.0.9790.30360" />
-    <PackageVersion Include="SystemTools.SystemToolsShared" Version="1.0.9790.30360" />
+    <PackageVersion Include="SystemTools.SerilogStuff" Version="1.0.9790.31339" />
+    <PackageVersion Include="SystemTools.SystemToolsShared" Version="1.0.9790.31339" />
   </ItemGroup>
 </Project>
