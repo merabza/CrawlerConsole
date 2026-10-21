@@ -4,11 +4,8 @@
     <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersApiClientsEdit\AppCliTools.CliParametersApiClientsEdit.csproj" />
     <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParametersEdit\AppCliTools.CliParametersEdit.csproj" />
     <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParameters\AppCliTools.CliParameters.csproj" />
-    <ProjectReference Include="..\..\ParametersManagement\ParametersManagement.LibApiClientParameters\ParametersManagement.LibApiClientParameters.csproj" />
     <ProjectReference Include="..\CrawlerConsoleData\CrawlerConsoleData.csproj" />
     <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliTools\AppCliTools.CliTools.csproj" />
-    <ProjectReference Include="..\..\CrawlerServiceShared\CrawlerServiceShared.Contracts\CrawlerServiceShared.Contracts.csproj" />
-    <ProjectReference Include="..\..\SystemTools\SystemTools.SerilogStuff\SystemTools.SerilogStuff.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,7 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CrawlerServiceShared.Contracts" />
+    <PackageReference Include="ParametersManagement.LibApiClientParameters" />
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="SystemTools.SerilogStuff" />
   </ItemGroup>
 
   <PropertyGroup>
