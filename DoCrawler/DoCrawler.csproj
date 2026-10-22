@@ -8,8 +8,6 @@
   <ItemGroup>
     <ProjectReference Include="..\LibCrawlerRepositories\LibCrawlerRepositories.csproj" />
     <ProjectReference Include="..\RobotsTxt\RobotsTxt.csproj" />
-    <ProjectReference Include="..\..\AppCliTools\AppCliTools.CliParameters\AppCliTools.CliParameters.csproj" />
-    <ProjectReference Include="..\..\AppCliTools\AppCliTools.LibDataInput\AppCliTools.LibDataInput.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AppCliTools.CliParameters" />
+    <PackageReference Include="AppCliTools.LibDataInput" />
     <PackageReference Include="HtmlAgilityPack" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="ParametersManagement.LibApiClientParameters" />
