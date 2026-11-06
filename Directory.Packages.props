@@ -22,7 +22,7 @@
     <PackageVersion Include="HtmlAgilityPack" Version="1.13.1" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.13" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.14" />
     <PackageVersion Include="SystemTools.SerilogStuff" Version="1.0.9791.20931" />
     <PackageVersion Include="SystemTools.SystemToolsShared" Version="1.0.9791.20931" />
   </ItemGroup>
