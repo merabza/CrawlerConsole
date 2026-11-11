@@ -4,11 +4,11 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="AppCliTools.CliParameters" Version="1.0.9808.42869" />
-    <PackageVersion Include="AppCliTools.CliParametersApiClientsEdit" Version="1.0.9808.42869" />
-    <PackageVersion Include="AppCliTools.CliParametersEdit" Version="1.0.9808.42869" />
-    <PackageVersion Include="AppCliTools.CliTools" Version="1.0.9808.42869" />
-    <PackageVersion Include="AppCliTools.LibDataInput" Version="1.0.9808.42869" />
+    <PackageVersion Include="AppCliTools.CliParameters" Version="1.0.9811.29691" />
+    <PackageVersion Include="AppCliTools.CliParametersApiClientsEdit" Version="1.0.9811.29691" />
+    <PackageVersion Include="AppCliTools.CliParametersEdit" Version="1.0.9811.29691" />
+    <PackageVersion Include="AppCliTools.CliTools" Version="1.0.9811.29691" />
+    <PackageVersion Include="AppCliTools.LibDataInput" Version="1.0.9811.29691" />
     <PackageVersion Include="CrawlerServiceShared.Contracts" Version="1.0.9808.42600" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
     <PackageVersion Include="ParametersManagement.LibApiClientParameters" Version="1.0.9808.42649" />
